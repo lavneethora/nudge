@@ -1,0 +1,97 @@
+import { db } from "@/lib/db/client";
+import { subscriptions, users } from "@/lib/db/schema";
+import { eq, and } from "drizzle-orm";
+import { hasReminderBeenSent, recordReminder } from "@/lib/db/queries";
+import { sendSMSToUser } from "@/lib/messaging";
+
+type ReminderThreshold = {
+  days: number;
+  type: "5_day" | "2_day" | "final";
+  emoji: string;
+  urgency: string;
+};
+
+// Ordered most-urgent-first: a subscription gets exactly one reminder —
+// the most urgent threshold its daysLeft falls under
+const THRESHOLDS: ReminderThreshold[] = [
+  { days: 0, type: "final", emoji: "🚨", urgency: "Last chance" },
+  { days: 2, type: "2_day", emoji: "⏰", urgency: "2 days left" },
+  { days: 5, type: "5_day", emoji: "⏰", urgency: "Reminder" },
+];
+
+export async function processReminders() {
+  const activeSubs = await db
+    .select({
+      subscription: subscriptions,
+      user: users,
+    })
+    .from(subscriptions)
+    .innerJoin(users, eq(subscriptions.userId, users.id))
+    .where(
+      and(
+        eq(subscriptions.status, "active"),
+        eq(users.status, "active")
+      )
+    );
+
+  let sent = 0;
+
+  for (const { subscription, user } of activeSubs) {
+    if (!subscription.trialEndDate) continue;
+
+    // Skip snoozed
+    if (
+      subscription.snoozeUntil &&
+      new Date(subscription.snoozeUntil) > new Date()
+    ) {
+      continue;
+    }
+
+    const endDate = new Date(subscription.trialEndDate);
+    const now = new Date();
+    const diffMs = endDate.getTime() - now.getTime();
+    const daysLeft = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+
+    // Trial already ended — nothing useful to remind about
+    if (daysLeft < 0) continue;
+
+    const threshold = THRESHOLDS.find((t) => daysLeft <= t.days);
+    if (!threshold) continue;
+
+    const alreadySent = await hasReminderBeenSent(
+      subscription.id,
+      threshold.type
+    );
+    if (alreadySent) continue;
+
+    const amount = subscription.billingAmount
+      ? `$${subscription.billingAmount}/mo`
+      : "recurring charges";
+
+    const dateStr = endDate.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+    });
+
+    let msg: string;
+    if (threshold.type === "final") {
+      msg = `${threshold.emoji} ${threshold.urgency}! Your ${subscription.vendorName} trial ends TODAY. Cancel before midnight to avoid ${amount}.`;
+    } else if (threshold.type === "2_day") {
+      msg = `${threshold.emoji} ${threshold.urgency} on your ${subscription.vendorName} trial (ends ${dateStr}). Cancel now to avoid ${amount}.`;
+    } else {
+      msg = `${threshold.emoji} ${threshold.urgency}: Your ${subscription.vendorName} trial ends in ${daysLeft} days (${dateStr}). You'll be charged ${amount} if you don't cancel.`;
+    }
+
+    if (subscription.cancelUrl) {
+      msg += `\n\nCancel here: ${subscription.cancelUrl}`;
+    } else {
+      msg += `\n\nText "cancel ${subscription.vendorName}" for help.`;
+    }
+
+    await sendSMSToUser(user.id, user.phoneNumber, msg);
+    await recordReminder(subscription.id, threshold.type);
+    sent++;
+  }
+
+  return sent;
+}
