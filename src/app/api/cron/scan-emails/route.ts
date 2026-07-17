@@ -1,0 +1,115 @@
+import { NextRequest, NextResponse } from "next/server";
+import { db } from "@/lib/db/client";
+import { users, subscriptions } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
+import { getAuthenticatedClient } from "@/lib/gmail/oauth";
+import { scanEmails } from "@/lib/gmail/scanner";
+import { parseEmail } from "@/lib/llm/parse-email";
+import { sendSMSToUser } from "@/lib/messaging";
+import { isCronAuthorized } from "@/lib/cron-auth";
+
+export async function GET(request: NextRequest) {
+  const targetUserId = request.nextUrl.searchParams.get("userId");
+
+  if (!isCronAuthorized(request)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  let userList;
+  if (targetUserId) {
+    userList = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, targetUserId))
+      .limit(1);
+  } else {
+    userList = await db
+      .select()
+      .from(users)
+      .where(eq(users.oauthConnected, true));
+  }
+
+  let totalFound = 0;
+
+  for (const user of userList) {
+    if (!user.oauthConnected || user.status !== "active") continue;
+
+    try {
+      const auth = await getAuthenticatedClient(user);
+
+      const existingSubs = await db
+        .select({ emailMessageId: subscriptions.emailMessageId })
+        .from(subscriptions)
+        .where(eq(subscriptions.userId, user.id));
+
+      const existingIds = new Set(
+        existingSubs
+          .map((s) => s.emailMessageId)
+          .filter((id): id is string => id !== null)
+      );
+
+      const emails = await scanEmails(auth, existingIds);
+      const newTrials: Array<{
+        vendorName: string;
+        trialEndDate: string | null;
+        billingAmount: number | null;
+        cancelUrl: string | null;
+        emailMessageId: string;
+      }> = [];
+
+      for (const email of emails) {
+        const parsed = await parseEmail(email.subject, email.from, email.body);
+        if (parsed && parsed.confidence >= 0.7) {
+          newTrials.push({
+            vendorName: parsed.vendorName,
+            trialEndDate: parsed.trialEndDate,
+            billingAmount: parsed.billingAmount,
+            cancelUrl: parsed.cancelUrl,
+            emailMessageId: email.messageId,
+          });
+        }
+      }
+
+      if (newTrials.length > 0) {
+        for (const trial of newTrials) {
+          await db.insert(subscriptions).values({
+            userId: user.id,
+            vendorName: trial.vendorName,
+            trialEndDate: trial.trialEndDate,
+            billingAmount: trial.billingAmount,
+            cancelUrl: trial.cancelUrl,
+            source: "email_detected",
+            status: "active",
+            emailMessageId: trial.emailMessageId,
+          });
+        }
+
+        const lines = newTrials.map((t) => {
+          const amount = t.billingAmount ? ` ($${t.billingAmount}/mo)` : "";
+          const date = t.trialEndDate
+            ? ` - Ends ${new Date(t.trialEndDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`
+            : "";
+          return `• ${t.vendorName}${date}${amount}`;
+        });
+
+        const msg =
+          newTrials.length === 1
+            ? `📧 Found a new trial:\n${lines[0]}\n\nI'll remind you before it charges.`
+            : `📧 Found ${newTrials.length} trials:\n\n${lines.join("\n")}\n\nI'll remind you before each one charges.`;
+
+        await sendSMSToUser(user.id, user.phoneNumber, msg);
+        totalFound += newTrials.length;
+      } else if (targetUserId) {
+        await sendSMSToUser(
+          user.id,
+          user.phoneNumber,
+          "I scanned your recent emails but didn't find any active trials. I'll keep watching and text you when I find one!\n\nYou can also manually add trials by texting: add [service] [date]"
+        );
+      }
+    } catch (err) {
+      console.error(`Error scanning emails for user ${user.id}:`, err);
+    }
+  }
+
+  return NextResponse.json({ scanned: userList.length, found: totalFound });
+}
