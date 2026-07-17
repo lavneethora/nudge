@@ -1,0 +1,83 @@
+@import "tailwindcss";
+
+:root {
+  /* Nudge palette — virio-inspired, sRGB fallbacks */
+  --offwhite: #f9f5ec;
+  --ink: #1b1b18;
+  --tan: #d5b473;
+  --khaki: #d2b375;
+  --rust: #c65e32;
+  --teal: #476d73;
+  --slate: #2c4347;
+  --olive: #7d7730;
+  --cream: #f7f1e3;
+
+  --background: var(--offwhite);
+  --foreground: var(--ink);
+}
+
+@supports (color: color(display-p3 1 1 1)) {
+  :root {
+    --offwhite: color(display-p3 0.9765 0.9608 0.9255);
+    --ink: color(display-p3 0.1059 0.1059 0.0941);
+    --tan: color(display-p3 0.8353 0.7059 0.451);
+    --rust: color(display-p3 0.8119 0.3703 0.1957);
+    --teal: color(display-p3 0.2784 0.4275 0.451);
+    --slate: color(display-p3 0.1725 0.2627 0.2784);
+    --olive: color(display-p3 0.4913 0.4662 0.1879);
+  }
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-offwhite: var(--offwhite);
+  --color-ink: var(--ink);
+  --color-tan: var(--tan);
+  --color-rust: var(--rust);
+  --color-teal: var(--teal);
+  --color-slate: var(--slate);
+  --color-olive: var(--olive);
+  --font-mono: var(--font-hero-mono);
+}
+
+:root {
+  --font-hero-mono: var(--font-geist-mono), var(--font-plex-mono),
+    "JetBrains Mono", "SF Mono", ui-monospace, monospace;
+}
+
+html {
+  overflow-x: clip;
+}
+
+body {
+  background-color: #f9f5ec;
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-hero-mono);
+  text-rendering: geometricPrecision;
+  overflow-x: clip;
+  position: relative;
+}
+
+/* grainy paper texture over the warm off-white — virio-style */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+
+  background-image: url("/bgNoise.png");
+  background-repeat: repeat;
+  background-size: 90px 90px;
+  /* the PNG is pre-baked faint (avg alpha ≈ 0.07) — virio's own CSS runs it
+     at 0.6, which is what produces the visible paper grain */
+  opacity: 0.6;
+}
+
+/* page content sits above the noise overlay */
+body > * {
+  position: relative;
+  z-index: 1;
+}
