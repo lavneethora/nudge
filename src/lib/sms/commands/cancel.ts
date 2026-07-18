@@ -14,7 +14,7 @@ export async function handleCancel(
   );
 
   if (!target) {
-    return `I couldn't find a trial matching "${serviceName}". Text "list" to see your active trials.`;
+    return `couldn't find a trial matching "${serviceName}". text "list" to see your active ones.`;
   }
 
   if (target.cancelUrl) {
@@ -23,8 +23,8 @@ export async function handleCancel(
       .set({ status: "cancelled", updatedAt: new Date().toISOString() })
       .where(eq(subscriptions.id, target.id));
 
-    return `Here's your ${target.vendorName} cancellation link:\n${target.cancelUrl}\n\nI've marked it as cancelled.`;
+    return `here's your ${target.vendorName} cancel link:\n${target.cancelUrl}\n\nmarked as cancelled ✅`;
   }
 
-  return `I don't have a cancellation link for ${target.vendorName}. Try searching "${target.vendorName} cancel subscription" or check their website directly.`;
+  return `no cancel link on file for ${target.vendorName}. try googling "${target.vendorName} cancel subscription" or check their site directly.`;
 }
