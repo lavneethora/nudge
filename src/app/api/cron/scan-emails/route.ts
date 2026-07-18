@@ -87,15 +87,15 @@ export async function GET(request: NextRequest) {
         const lines = newTrials.map((t) => {
           const amount = t.billingAmount ? ` ($${t.billingAmount}/mo)` : "";
           const date = t.trialEndDate
-            ? ` - Ends ${new Date(t.trialEndDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`
+            ? ` — ends ${new Date(t.trialEndDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`
             : "";
           return `• ${t.vendorName}${date}${amount}`;
         });
 
         const msg =
           newTrials.length === 1
-            ? `📧 Found a new trial:\n${lines[0]}\n\nI'll remind you before it charges.`
-            : `📧 Found ${newTrials.length} trials:\n\n${lines.join("\n")}\n\nI'll remind you before each one charges.`;
+            ? `📧 found a new trial:\n${lines[0]}\n\ni'll ping you before it charges.`
+            : `📧 found ${newTrials.length} trials:\n\n${lines.join("\n")}\n\ni'll ping you before each one charges.`;
 
         await sendSMSToUser(user.id, user.phoneNumber, msg);
         totalFound += newTrials.length;
@@ -103,7 +103,7 @@ export async function GET(request: NextRequest) {
         await sendSMSToUser(
           user.id,
           user.phoneNumber,
-          "I scanned your recent emails but didn't find any active trials. I'll keep watching and text you when I find one!\n\nYou can also manually add trials by texting: add [service] [date]"
+          "scanned your recent emails, no active trials yet. i'll keep watching and text you as soon as i spot one!\n\nyou can also add trials manually by texting: add [service] [date]"
         );
       }
     } catch (err) {
