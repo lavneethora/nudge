@@ -1,14 +1,15 @@
 import type { CommandContext } from "../router";
 
 export async function handleHelp(_ctx: CommandContext): Promise<string> {
+  // brand + support contact + STOP required by MNO — kept intact
   return [
-    "Nudge: Trial reminder service. Support: 31lavneet@gmail.com or nudge-xi-nine.vercel.app. Msg&data rates may apply. Reply STOP to opt out.",
+    "hey! im nudge — i watch your inbox and text you before trials charge you. need help? email 31lavneet@gmail.com. msg & data rates may apply. text STOP to opt out.",
     "",
-    "Commands:",
-    '"list" - See active trials',
-    '"cancel [service]" - Get cancel link',
-    '"add [service] [date]" - Track a trial',
-    '"snooze [service]" - Delay 24hrs',
-    '"stop" - Unsubscribe',
+    "here's what i can do:",
+    "• list — your active trials",
+    "• cancel [service] — get the cancel link",
+    "• add [service] [date] — track a trial manually",
+    "• snooze [service] — delay reminders 24hrs",
+    "• stop — unsubscribe",
   ].join("\n");
 }
