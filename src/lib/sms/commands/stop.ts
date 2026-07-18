@@ -12,12 +12,13 @@ export async function handleStop(
       .update(users)
       .set({ status: "paused", updatedAt: new Date().toISOString() })
       .where(eq(users.id, ctx.userId));
-    return "Nudge: You have been unsubscribed and will not receive any more messages from Nudge. Reply START to resubscribe.";
+    // brand + no-further-messages required by MNO — kept intact, just lowercased
+    return "nudge: you're unsubscribed and won't get any more messages from nudge. text START if you change your mind.";
   }
 
   await db
     .update(users)
     .set({ status: "active", updatedAt: new Date().toISOString() })
     .where(eq(users.id, ctx.userId));
-  return "Nudge: You're resubscribed to trial reminders. Msg frequency varies. Msg&data rates may apply. Reply HELP for help, STOP to opt out.";
+  return "nudge: you're back on! msg frequency varies, msg & data rates may apply. text HELP anytime or STOP to opt out.";
 }
