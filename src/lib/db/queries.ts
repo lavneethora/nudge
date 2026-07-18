@@ -28,6 +28,16 @@ export async function createUser(phoneNumber: string) {
   return result[0];
 }
 
+export async function setOnboardingState(
+  userId: string,
+  state: "awaiting_connect" | null
+) {
+  await db
+    .update(users)
+    .set({ onboardingState: state, updatedAt: new Date().toISOString() })
+    .where(eq(users.id, userId));
+}
+
 export async function getActiveSubscriptions(userId: string) {
   return db
     .select()
