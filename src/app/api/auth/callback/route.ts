@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
     await sendSMSToUser(
       user.id,
       phone,
-      "All set! ✅ Gmail connected. I'm scanning your inbox for active trials now..."
+      "all set ✅ gmail is connected — scanning your inbox for active trials now..."
     );
 
     // Trigger initial scan after the redirect response is sent
