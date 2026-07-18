@@ -75,17 +75,17 @@ export async function processReminders() {
 
     let msg: string;
     if (threshold.type === "final") {
-      msg = `${threshold.emoji} ${threshold.urgency}! Your ${subscription.vendorName} trial ends TODAY. Cancel before midnight to avoid ${amount}.`;
+      msg = `${threshold.emoji} last chance! your ${subscription.vendorName} trial ends TODAY. cancel before midnight or you'll get charged ${amount}.`;
     } else if (threshold.type === "2_day") {
-      msg = `${threshold.emoji} ${threshold.urgency} on your ${subscription.vendorName} trial (ends ${dateStr}). Cancel now to avoid ${amount}.`;
+      msg = `${threshold.emoji} 2 days left on your ${subscription.vendorName} trial (ends ${dateStr}). cancel now to avoid ${amount}.`;
     } else {
-      msg = `${threshold.emoji} ${threshold.urgency}: Your ${subscription.vendorName} trial ends in ${daysLeft} days (${dateStr}). You'll be charged ${amount} if you don't cancel.`;
+      msg = `${threshold.emoji} heads up — your ${subscription.vendorName} trial ends in ${daysLeft} days (${dateStr}). you'll get charged ${amount} if you don't cancel.`;
     }
 
     if (subscription.cancelUrl) {
-      msg += `\n\nCancel here: ${subscription.cancelUrl}`;
+      msg += `\n\ncancel here: ${subscription.cancelUrl}`;
     } else {
-      msg += `\n\nText "cancel ${subscription.vendorName}" for help.`;
+      msg += `\n\ntext "cancel ${subscription.vendorName}" and i'll help.`;
     }
 
     await sendSMSToUser(user.id, user.phoneNumber, msg);
