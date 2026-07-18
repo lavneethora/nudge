@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getUserByPhone, createUser } from "@/lib/db/queries";
-import { sendSMSToUser } from "@/lib/messaging";
 
 export async function POST(request: NextRequest) {
   const { phoneNumber } = await request.json();
@@ -29,18 +28,13 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // Just create the user — no welcome SMS from here. The frontend redirects
+  // the user to Messages with a pre-filled "so, what is nudge anyway??" text;
+  // Nudge's first message will be the REPLY to that inbound (see sms/router).
   let user = await getUserByPhone(e164);
   if (!user) {
     user = await createUser(e164);
   }
-
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-
-  await sendSMSToUser(
-    user.id,
-    e164,
-    `Nudge: You're signed up for trial reminders. Msg frequency varies. Msg&data rates may apply. Reply HELP for help, STOP to opt out.\n\nTo get started, connect your Gmail (read-only):\n${appUrl}/auth/gmail?phone=${encodeURIComponent(e164)}`
-  );
 
   return NextResponse.json({
     success: true,
