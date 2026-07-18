@@ -4,12 +4,16 @@ import { handleAdd } from "./commands/add";
 import { handleSnooze } from "./commands/snooze";
 import { handleHelp } from "./commands/help";
 import { handleStop } from "./commands/stop";
+import { setOnboardingState } from "@/lib/db/queries";
+
+export type OnboardingState = "awaiting_connect" | null;
 
 export type CommandContext = {
   userId: string;
   phoneNumber: string;
   body: string;
   oauthConnected: boolean;
+  onboardingState: OnboardingState;
 };
 
 type CommandRoute = {
@@ -25,11 +29,31 @@ const routes: CommandRoute[] = [
   { pattern: /^snooze\s+(.+)/i, handler: (ctx, m) => handleSnooze(ctx, m[1]) },
 ];
 
+// affirmative replies to "wanna connect your gmail?" — kept loose on purpose
+const YES = /^(y|ya|yea|yes|yeah|yep|yup|sure|ok|okay|please|do it|dope|yesss+|👍|✅)$/i;
+
+function connectLink(phoneNumber: string) {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+  return `${appUrl}/auth/gmail?phone=${encodeURIComponent(phoneNumber)}`;
+}
+
+// The intro Nudge sends as its FIRST message — this reply carries the 10DLC
+// opt-in disclosures (brand + frequency + fees + HELP + STOP) that the MNO
+// review requires on the confirmation message. Lowercase Nudge voice; the
+// STOP/HELP keywords stay cased so users can spot them at a glance.
+function intro() {
+  return (
+    "hey! im nudge — i watch your inbox and text you before free trials charge your card. " +
+    "msg frequency varies, msg & data rates may apply. text HELP for help or STOP to opt out.\n\n" +
+    "wanna connect your gmail so i can start scanning?"
+  );
+}
+
 export async function routeMessage(ctx: CommandContext): Promise<string> {
   const trimmed = ctx.body.trim();
 
-  // STOP/START must always work — even for users who haven't finished OAuth —
-  // so an opt-out actually pauses their record instead of just replying.
+  // STOP/START must always work — even mid-onboarding — so an opt-out actually
+  // pauses the record instead of just replying (this is the compliance guarantee).
   if (/^(stop|pause|quit|unsubscribe|cancel|end)$/i.test(trimmed)) {
     return handleStop(ctx, "pause");
   }
@@ -37,10 +61,33 @@ export async function routeMessage(ctx: CommandContext): Promise<string> {
     return handleStop(ctx, "resume");
   }
 
+  // --- Poke-style conversational onboarding (pre-OAuth) ---
+  // The user pre-fill sms link seeds "so, what is nudge anyway??". Their
+  // first text triggers the intro (any content — state, not text, decides).
   if (!ctx.oauthConnected) {
-    return getOnboardingResponse(trimmed, ctx);
+    // Explicit HELP anytime returns the campaign HELP reply.
+    if (/^(help|\?)$/i.test(trimmed)) {
+      return handleHelp(ctx);
+    }
+
+    if (ctx.onboardingState === "awaiting_connect") {
+      await setOnboardingState(ctx.userId, null);
+      if (YES.test(trimmed)) {
+        return (
+          "got it! one sec — here's your gmail connect link:\n" +
+          connectLink(ctx.phoneNumber) +
+          "\n\noh, and save me in your contacts as \"nudge\" so my texts don't get lost 💾"
+        );
+      }
+      return "no worries, lmk when you're ready. text HELP anytime.";
+    }
+
+    // First inbound from an un-onboarded user: send the intro + connect ask.
+    await setOnboardingState(ctx.userId, "awaiting_connect");
+    return intro();
   }
 
+  // --- OAuth-connected: normal command routing ---
   for (const route of routes) {
     const match = trimmed.match(route.pattern);
     if (match) {
@@ -48,15 +95,5 @@ export async function routeMessage(ctx: CommandContext): Promise<string> {
     }
   }
 
-  return `I didn't understand that. Text "help" to see what I can do.`;
-}
-
-function getOnboardingResponse(body: string, ctx: CommandContext): string {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-
-  if (/^(help|\?)$/i.test(body)) {
-    return `Nudge: Trial reminder service. Support: 31lavneet@gmail.com or nudge-xi-nine.vercel.app. Msg&data rates may apply. Reply STOP to opt out.\n\nTo get started, connect your Gmail:\n${appUrl}/auth/gmail?phone=${encodeURIComponent(ctx.phoneNumber)}`;
-  }
-
-  return `Nudge: You're signed up for trial reminders. Msg frequency varies. Msg&data rates may apply. Reply HELP for help, STOP to opt out.\n\nTo get started, connect your Gmail (read-only):\n${appUrl}/auth/gmail?phone=${encodeURIComponent(ctx.phoneNumber)}`;
+  return 'didnt catch that. text "help" to see what i can do.';
 }
