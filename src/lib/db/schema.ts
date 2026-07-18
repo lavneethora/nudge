@@ -16,6 +16,12 @@ export const users = sqliteTable("users", {
   status: text("status", {
     enum: ["active", "paused", "disconnected"],
   }).default("active"),
+  // where the user is in the conversational onboarding funnel: null =
+  // fresh / already connected; "awaiting_connect" = got the intro, we're
+  // waiting for their yes/no on connecting Gmail
+  onboardingState: text("onboarding_state", {
+    enum: ["awaiting_connect"],
+  }),
   createdAt: text("created_at").default(sql`(datetime('now'))`),
   updatedAt: text("updated_at").default(sql`(datetime('now'))`),
 });
