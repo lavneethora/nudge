@@ -12,33 +12,50 @@ export type ParsedTrial = {
 
 const TOOL_DEFINITION: Anthropic.Tool = {
   name: "extract_trial_info",
-  description:
-    "Extract subscription trial information from an email. Only call this if the email is about a free trial or subscription.",
+  description: [
+    "Extract subscription/trial info from an email — but ONLY if the email is a",
+    "confirmation that the recipient has ALREADY started or is now enrolled in a",
+    "paid subscription or trial.",
+    "",
+    "Do NOT call this tool for:",
+    "  - Marketing offers (\"start your free trial today\", \"try Premium free\")",
+    "  - Newsletters, digests, or promotional roundups",
+    "  - Emails that pitch a trial the recipient has NOT yet accepted",
+    "  - Renewal reminders that are just informational (unless they name the",
+    "    exact next charge date and amount)",
+    "  - Discount codes, gift subscriptions, or offer emails",
+    "",
+    "Only call this tool when the email is clearly a receipt / welcome /",
+    "activation confirming that the recipient's account is now active and will",
+    "be charged in the future.",
+  ].join(" "),
   input_schema: {
     type: "object" as const,
     properties: {
       vendor_name: {
         type: "string",
-        description: "Name of the service/company offering the trial",
+        description:
+          "Name of the service/company (e.g. 'Netflix', 'Spotify Premium'). Use the real product name, not the sender domain.",
       },
       trial_end_date: {
         type: "string",
         description:
-          "ISO 8601 date when the trial ends (e.g. 2025-06-15). null if not found.",
+          "ISO 8601 date when the trial ends or the first charge hits. Must be a future date explicitly stated in the email. null if the email doesn't state a specific date.",
       },
       billing_amount: {
         type: "number",
         description:
-          "Monthly billing amount in USD after trial ends. null if not found.",
+          "Monthly billing amount in USD after trial ends. null if not stated.",
       },
       cancel_url: {
         type: "string",
-        description: "URL to cancel the subscription. null if not found.",
+        description:
+          "URL to cancel the subscription. Must be a real cancellation/account/manage link — NOT a marketing tracking URL. null if not found.",
       },
       confidence: {
         type: "number",
         description:
-          "Confidence score 0-1 that this email is about a subscription trial",
+          "0-1 confidence that this email is a genuine active-subscription confirmation (not a marketing offer or newsletter).",
       },
     },
     required: ["vendor_name", "confidence"],
@@ -58,7 +75,7 @@ export async function parseEmail(
     messages: [
       {
         role: "user",
-        content: `Analyze this email and extract subscription trial information if present. If this is NOT about a free trial or subscription, do not use the tool.
+        content: `Analyze this email. Only call the tool if this is a CONFIRMATION that the recipient has already started an active subscription or trial (not a marketing pitch, newsletter, or offer). If it's promotional / an offer to start a trial / a newsletter, do NOT call the tool.
 
 Subject: ${subject}
 From: ${from}
