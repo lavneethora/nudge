@@ -75,6 +75,9 @@ export async function POST(request: NextRequest) {
     phoneNumber: from,
     body: text,
     oauthConnected: user.oauthConnected ?? false,
+    onboardingState: (user.onboardingState ?? null) as
+      | "awaiting_connect"
+      | null,
   });
 
   await sendSMSToUser(user.id, from, response);
