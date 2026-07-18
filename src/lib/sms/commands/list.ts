@@ -5,16 +5,16 @@ export async function handleList(ctx: CommandContext): Promise<string> {
   const subs = await getActiveSubscriptions(ctx.userId);
 
   if (subs.length === 0) {
-    return "You don't have any active trials being tracked. I'll text you when I find one in your email!";
+    return "no active trials right now! i'll text you as soon as i spot one in your inbox.";
   }
 
   const lines = subs.map((s, i) => {
     const amount = s.billingAmount ? ` ($${s.billingAmount}/mo)` : "";
     const date = s.trialEndDate
-      ? ` - Ends ${new Date(s.trialEndDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`
+      ? ` — ends ${new Date(s.trialEndDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`
       : "";
     return `${i + 1}. ${s.vendorName}${date}${amount}`;
   });
 
-  return `Your active trials:\n\n${lines.join("\n")}`;
+  return `your active trials:\n\n${lines.join("\n")}`;
 }
