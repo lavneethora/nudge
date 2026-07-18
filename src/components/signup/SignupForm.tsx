@@ -37,7 +37,10 @@ export default function SignupForm({
       setSent(true);
 
       setTimeout(() => {
-        window.location.href = `sms:${data.smsNumber}`;
+        // ?&body= is the reliably-cross-platform form (iOS wants &body,
+        // Android wants ?body — the combined ?& works on both)
+        const body = encodeURIComponent("so, what is nudge anyway??");
+        window.location.href = `sms:${data.smsNumber}?&body=${body}`;
       }, 1500);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
