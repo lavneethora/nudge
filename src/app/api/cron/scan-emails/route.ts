@@ -59,15 +59,28 @@ export async function GET(request: NextRequest) {
 
       for (const email of emails) {
         const parsed = await parseEmail(email.subject, email.from, email.body);
-        if (parsed && parsed.confidence >= 0.7) {
-          newTrials.push({
-            vendorName: parsed.vendorName,
-            trialEndDate: parsed.trialEndDate,
-            billingAmount: parsed.billingAmount,
-            cancelUrl: parsed.cancelUrl,
-            emailMessageId: email.messageId,
-          });
+        if (!parsed || parsed.confidence < 0.7) continue;
+        // Sanity check: reject trial end dates in the past or over a year out —
+        // catches LLM hallucinations like "2025-01-17" on a July 2026 email.
+        if (parsed.trialEndDate) {
+          const end = new Date(parsed.trialEndDate);
+          const now = new Date();
+          const yearOut = new Date();
+          yearOut.setFullYear(now.getFullYear() + 1);
+          if (isNaN(end.getTime()) || end < now || end > yearOut) {
+            console.warn(
+              `Rejected LLM-parsed trial for ${parsed.vendorName}: implausible end date ${parsed.trialEndDate}`
+            );
+            continue;
+          }
         }
+        newTrials.push({
+          vendorName: parsed.vendorName,
+          trialEndDate: parsed.trialEndDate,
+          billingAmount: parsed.billingAmount,
+          cancelUrl: parsed.cancelUrl,
+          emailMessageId: email.messageId,
+        });
       }
 
       if (newTrials.length > 0) {
