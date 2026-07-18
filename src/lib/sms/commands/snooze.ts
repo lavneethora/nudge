@@ -14,7 +14,7 @@ export async function handleSnooze(
   );
 
   if (!target) {
-    return `I couldn't find a trial matching "${serviceName}". Text "list" to see your active trials.`;
+    return `couldn't find a trial matching "${serviceName}". text "list" to see your active ones.`;
   }
 
   const snoozeUntil = new Date();
@@ -28,5 +28,5 @@ export async function handleSnooze(
     })
     .where(eq(subscriptions.id, target.id));
 
-  return `Snoozed reminders for ${target.vendorName} for 24 hours.`;
+  return `snoozed ${target.vendorName} reminders for 24 hours 💤`;
 }
