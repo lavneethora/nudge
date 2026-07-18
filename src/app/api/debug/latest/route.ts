@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db/client";
-import { subscriptions, messages, users } from "@/lib/db/schema";
-import { desc } from "drizzle-orm";
+import { subscriptions, messages, users, remindersSent } from "@/lib/db/schema";
+import { desc, eq } from "drizzle-orm";
 import { isCronAuthorized } from "@/lib/cron-auth";
 
 // GET /api/debug/latest — CRON_SECRET-authed inspection endpoint for
@@ -19,4 +19,23 @@ export async function GET(request: NextRequest) {
   ]);
 
   return NextResponse.json({ subs, msgs, users: allUsers });
+}
+
+// DELETE /api/debug/latest?subId=<uuid> — nuke a bogus subscription
+// (and its reminder-sent rows) so it stops showing up in `list` /
+// re-triggering reminders. CRON_SECRET-authed.
+export async function DELETE(request: NextRequest) {
+  if (!isCronAuthorized(request)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  const subId = request.nextUrl.searchParams.get("subId");
+  if (!subId) {
+    return NextResponse.json({ error: "Missing subId" }, { status: 400 });
+  }
+  await db.delete(remindersSent).where(eq(remindersSent.subscriptionId, subId));
+  const rows = await db
+    .delete(subscriptions)
+    .where(eq(subscriptions.id, subId))
+    .returning();
+  return NextResponse.json({ deleted: rows.length, subId });
 }
