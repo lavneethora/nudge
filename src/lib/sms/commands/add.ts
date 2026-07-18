@@ -9,7 +9,7 @@ export async function handleAdd(
 ): Promise<string> {
   const parsed = new Date(dateStr);
   if (isNaN(parsed.getTime())) {
-    return `I couldn't understand the date "${dateStr}". Try something like "add Netflix Jun 15" or "add Hulu July 1 2025".`;
+    return `couldn't parse "${dateStr}". try something like "add Netflix Jun 15" or "add Hulu July 1 2025".`;
   }
 
   // Year-less dates ("Jun 15") parse as 2001 — assume the next occurrence
@@ -22,7 +22,7 @@ export async function handleAdd(
   }
 
   if (parsed < new Date()) {
-    return `That date is in the past. Please provide a future trial end date.`;
+    return `that date's in the past — give me a future trial end date.`;
   }
 
   await db.insert(subscriptions).values({
@@ -38,5 +38,5 @@ export async function handleAdd(
     day: "numeric",
   });
 
-  return `Got it! I'll remind you about your ${serviceName.trim()} trial before ${formatted}.`;
+  return `got it! i'll ping you about your ${serviceName.trim()} trial before ${formatted}.`;
 }
