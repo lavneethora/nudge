@@ -18,12 +18,23 @@ export type RawEmail = {
   date: string;
 };
 
+// Skip well-known senders that are almost never trial confirmations:
+// personal newsletters (beehiiv, substack, mailchimp, etc.) and bulk digest
+// addresses. Deliberately NOT skipping `welcome@`, `hello@`, `info@` etc.
+// because legit product emails come from those prefixes too — the LLM prompt
+// is the layer that filters marketing pitches vs real confirmations.
 const SKIP_DOMAINS = [
   "noreply@medium.com",
   "newsletter@",
   "digest@",
   "weekly@",
   "news@",
+  "beehiiv",
+  "substack",
+  "mailchimp",
+  "mailchi.mp",
+  "convertkit",
+  "buttondown",
 ];
 
 function shouldSkip(from: string): boolean {
