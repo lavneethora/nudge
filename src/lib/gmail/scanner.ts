@@ -1,8 +1,13 @@
 import { google, gmail_v1 } from "googleapis";
 import type { OAuth2Client } from "google-auth-library";
 
+// Catch-net for trial/subscription confirmation emails. Kept broad on purpose:
+// many services send "Welcome to X" or "Your receipt" as the confirmation
+// (Tidal, Spotify, most streamers) with no trial-specific words. Claude Haiku
+// does the actual "is this about a subscription?" call downstream — it's cheap
+// and will refuse to use the tool on true noise like newsletters.
 const SEARCH_QUERY =
-  "subject:(trial OR subscription OR free trial OR billing OR renewal) newer_than:7d";
+  'subject:(trial OR subscription OR "free trial" OR billing OR renewal OR welcome OR receipt OR invoice OR membership OR activated OR started OR "you\'re in") newer_than:7d';
 const MAX_EMAILS = 50;
 
 export type RawEmail = {
