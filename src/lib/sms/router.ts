@@ -4,7 +4,14 @@ import { handleAdd } from "./commands/add";
 import { handleSnooze } from "./commands/snooze";
 import { handleHelp } from "./commands/help";
 import { handleStop } from "./commands/stop";
-import { setOnboardingState } from "@/lib/db/queries";
+import {
+  setOnboardingState,
+  setAwaitingDateForSub,
+  getSubscriptionById,
+  updateSubscriptionTrialEnd,
+  deleteSubscription,
+} from "@/lib/db/queries";
+import { parseUserDate } from "@/lib/dates/parse-user-date";
 
 export type OnboardingState = "awaiting_connect" | null;
 
@@ -14,6 +21,7 @@ export type CommandContext = {
   body: string;
   oauthConnected: boolean;
   onboardingState: OnboardingState;
+  awaitingDateForSubId: string | null;
 };
 
 type CommandRoute = {
@@ -87,11 +95,49 @@ export async function routeMessage(ctx: CommandContext): Promise<string> {
     return intro();
   }
 
-  // --- OAuth-connected: normal command routing ---
+  // --- OAuth-connected: check normal commands FIRST so a mid-conversation
+  // "list" or "cancel netflix" still works even while we're waiting for a
+  // date reply — commands beat state.
   for (const route of routes) {
     const match = trimmed.match(route.pattern);
     if (match) {
       return route.handler(ctx, match);
+    }
+  }
+
+  // --- Awaiting a date reply for a specific subscription -----------------
+  // Nudge previously asked "when does the [Vendor] trial end?" and stored
+  // the sub's id on the user. Any non-command text now gets parsed as a
+  // date response for that sub.
+  if (ctx.awaitingDateForSubId) {
+    const subId = ctx.awaitingDateForSubId;
+    const sub = await getSubscriptionById(subId);
+    if (!sub) {
+      // sub was deleted meanwhile — clear the state and fall through
+      await setAwaitingDateForSub(ctx.userId, null);
+    } else {
+      const parsed = parseUserDate(trimmed);
+      if (parsed.kind === "date") {
+        await updateSubscriptionTrialEnd(subId, parsed.date);
+        await setAwaitingDateForSub(ctx.userId, null);
+        const pretty = new Date(parsed.date).toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+        });
+        return `perfect — locked in. i'll ping you before your ${sub.vendorName} trial ends ${pretty} 👌`;
+      }
+      if (parsed.kind === "cancel") {
+        await deleteSubscription(subId);
+        await setAwaitingDateForSub(ctx.userId, null);
+        return `no worries — dropped ${sub.vendorName} from your list.`;
+      }
+      if (parsed.kind === "unknown") {
+        // keep the sub, keep the state cleared — user can text `add [name] [date]` later
+        await setAwaitingDateForSub(ctx.userId, null);
+        return `all good — i'll keep ${sub.vendorName} on your list without a reminder date. text me "add ${sub.vendorName} [date]" whenever you find out (like "add ${sub.vendorName} aug 15").`;
+      }
+      // unparseable — keep state, nudge them for a clearer format
+      return `hm, couldn't parse that. try something like "aug 15", "8/15", "in 14 days", or "not a trial" if it isn't one.`;
     }
   }
 
