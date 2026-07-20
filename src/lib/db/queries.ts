@@ -38,6 +38,45 @@ export async function setOnboardingState(
     .where(eq(users.id, userId));
 }
 
+export async function setAwaitingDateForSub(
+  userId: string,
+  subId: string | null
+) {
+  await db
+    .update(users)
+    .set({
+      awaitingDateForSubId: subId,
+      updatedAt: new Date().toISOString(),
+    })
+    .where(eq(users.id, userId));
+}
+
+export async function getSubscriptionById(subId: string) {
+  const result = await db
+    .select()
+    .from(subscriptions)
+    .where(eq(subscriptions.id, subId))
+    .limit(1);
+  return result[0] ?? null;
+}
+
+export async function updateSubscriptionTrialEnd(
+  subId: string,
+  trialEndDate: string
+) {
+  await db
+    .update(subscriptions)
+    .set({
+      trialEndDate,
+      updatedAt: new Date().toISOString(),
+    })
+    .where(eq(subscriptions.id, subId));
+}
+
+export async function deleteSubscription(subId: string) {
+  await db.delete(subscriptions).where(eq(subscriptions.id, subId));
+}
+
 export async function getActiveSubscriptions(userId: string) {
   return db
     .select()
