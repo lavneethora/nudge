@@ -7,6 +7,7 @@ import { scanEmails } from "@/lib/gmail/scanner";
 import { parseEmail } from "@/lib/llm/parse-email";
 import { sendSMSToUser } from "@/lib/messaging";
 import { isCronAuthorized } from "@/lib/cron-auth";
+import { setAwaitingDateForSub } from "@/lib/db/queries";
 
 export async function GET(request: NextRequest) {
   const targetUserId = request.nextUrl.searchParams.get("userId");
@@ -84,33 +85,69 @@ export async function GET(request: NextRequest) {
       }
 
       if (newTrials.length > 0) {
+        // Insert each and remember the DB rows so we can ask about date-less ones
+        const insertedRows: Array<{
+          id: string;
+          vendorName: string;
+          trialEndDate: string | null;
+        }> = [];
         for (const trial of newTrials) {
-          await db.insert(subscriptions).values({
-            userId: user.id,
-            vendorName: trial.vendorName,
-            trialEndDate: trial.trialEndDate,
-            billingAmount: trial.billingAmount,
-            cancelUrl: trial.cancelUrl,
-            source: "email_detected",
-            status: "active",
-            emailMessageId: trial.emailMessageId,
-          });
+          const [row] = await db
+            .insert(subscriptions)
+            .values({
+              userId: user.id,
+              vendorName: trial.vendorName,
+              trialEndDate: trial.trialEndDate,
+              billingAmount: trial.billingAmount,
+              cancelUrl: trial.cancelUrl,
+              source: "email_detected",
+              status: "active",
+              emailMessageId: trial.emailMessageId,
+            })
+            .returning({
+              id: subscriptions.id,
+              vendorName: subscriptions.vendorName,
+              trialEndDate: subscriptions.trialEndDate,
+            });
+          insertedRows.push(row);
         }
 
-        const lines = newTrials.map((t) => {
-          const amount = t.billingAmount ? ` ($${t.billingAmount}/mo)` : "";
-          const date = t.trialEndDate
-            ? ` — ends ${new Date(t.trialEndDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`
-            : "";
-          return `• ${t.vendorName}${date}${amount}`;
-        });
+        const withDate = insertedRows.filter((r) => r.trialEndDate);
+        const withoutDate = insertedRows.filter((r) => !r.trialEndDate);
 
-        const msg =
-          newTrials.length === 1
-            ? `📧 found a new trial:\n${lines[0]}\n\ni'll ping you before it charges.`
-            : `📧 found ${newTrials.length} trials:\n\n${lines.join("\n")}\n\ni'll ping you before each one charges.`;
+        // Announce the ones we know the date for
+        if (withDate.length > 0) {
+          const lines = withDate.map((r) => {
+            const trial = newTrials.find((t) => t.vendorName === r.vendorName)!;
+            const amount = trial.billingAmount ? ` ($${trial.billingAmount}/mo)` : "";
+            const date = ` — ends ${new Date(r.trialEndDate!).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`;
+            return `• ${r.vendorName}${date}${amount}`;
+          });
+          const msg =
+            withDate.length === 1
+              ? `📧 found a new trial:\n${lines[0]}\n\ni'll ping you before it charges.`
+              : `📧 found ${withDate.length} trials:\n\n${lines.join("\n")}\n\ni'll ping you before each one charges.`;
+          await sendSMSToUser(user.id, user.phoneNumber, msg);
+        }
 
-        await sendSMSToUser(user.id, user.phoneNumber, msg);
+        // For subs we detected but couldn't get an end date from — ask the user.
+        // We only ask about the FIRST one; the rest sit in `list` until the user
+        // adds a date via `add [name] [date]` (or the follow-up conversation
+        // continues for the next scan cycle).
+        if (withoutDate.length > 0) {
+          const first = withoutDate[0];
+          await setAwaitingDateForSub(user.id, first.id);
+          const extraNote =
+            withoutDate.length > 1
+              ? `\n\nps: found ${withoutDate.length - 1} more without dates — text "list" to see them.`
+              : "";
+          await sendSMSToUser(
+            user.id,
+            user.phoneNumber,
+            `saw you signed up for ${first.vendorName}! is this a free trial? when does it end? (like "aug 15", "in 14 days", or "not a trial" if it isn't one)${extraNote}`
+          );
+        }
+
         totalFound += newTrials.length;
       } else if (targetUserId) {
         await sendSMSToUser(
