@@ -11,6 +11,8 @@
 //      (state-based, not text-matched).
 //   D. Fresh user texts "STOP" mid-onboarding → gets the unsubscribe
 //      copy AND their `users.status` becomes "paused".
+//   E. Scanner-found sub without a date → user gets asked; replying
+//      "aug 15" writes the date + clears state; "not a trial" deletes it.
 
 import { routeMessage } from "@/lib/sms/router";
 import { createUser, setOnboardingState } from "@/lib/db/queries";
@@ -75,6 +77,7 @@ async function driveIntro(user: { id: string; phoneNumber: string }, text: strin
     phoneNumber: user.phoneNumber,
     body: text,
     oauthConnected: false,
+    awaitingDateForSubId: null,
     onboardingState: null,
   });
 }
@@ -104,6 +107,7 @@ async function main() {
     phoneNumber: A,
     body: "yes",
     oauthConnected: false,
+    awaitingDateForSubId: null,
     onboardingState: "awaiting_connect",
   });
   assert("reply contains OAuth link path", /\/auth\/gmail\?phone=/.test(yesReply));
@@ -133,6 +137,7 @@ async function main() {
     phoneNumber: B,
     body: "STOP",
     oauthConnected: false,
+    awaitingDateForSubId: null,
     onboardingState: "awaiting_connect",
   });
   assert("STOP reply starts with 'nudge:'", stopReply.startsWith("nudge:"));
@@ -144,8 +149,92 @@ async function main() {
   const uD2 = await reload(uD.id);
   assert("user.status is paused", uD2.status === "paused", `got ${uD2.status}`);
 
+  console.log("\n── E. date-reply flow ──");
+  // Seed: user with OAuth, awaiting date on a real sub
+  const uE = await fresh("+15550004444");
+  await db
+    .update(users)
+    .set({ oauthConnected: true })
+    .where(eq(users.id, uE.id));
+  const [seededSub] = await db
+    .insert(subscriptions)
+    .values({
+      userId: uE.id,
+      vendorName: "Tidal",
+      trialEndDate: null,
+      billingAmount: null,
+      source: "email_detected",
+      status: "active",
+      emailMessageId: "test-e-1",
+    })
+    .returning({ id: subscriptions.id });
+  await db
+    .update(users)
+    .set({ awaitingDateForSubId: seededSub.id })
+    .where(eq(users.id, uE.id));
+
+  // date reply "aug 15" → updates the sub, clears state
+  const dateReply = await routeMessage({
+    userId: uE.id,
+    phoneNumber: "+15550004444",
+    body: "aug 15",
+    oauthConnected: true,
+    onboardingState: null,
+    awaitingDateForSubId: seededSub.id,
+  });
+  assert("date reply confirms with vendor name", /Tidal/.test(dateReply));
+  assert("date reply names a specific end month", /Aug/.test(dateReply));
+  const uE2 = await reload(uE.id);
+  assert("awaitingDateForSubId cleared", uE2.awaitingDateForSubId === null);
+  const subAfter = await db
+    .select({ trialEndDate: subscriptions.trialEndDate })
+    .from(subscriptions)
+    .where(eq(subscriptions.id, seededSub.id))
+    .limit(1);
+  assert(
+    "sub.trialEndDate is now an ISO date",
+    /^\d{4}-\d{2}-\d{2}$/.test(subAfter[0]?.trialEndDate ?? "")
+  );
+
+  // second seeded sub, this time user says "not a trial" → sub deleted
+  const [seededSub2] = await db
+    .insert(subscriptions)
+    .values({
+      userId: uE.id,
+      vendorName: "Some Newsletter",
+      trialEndDate: null,
+      billingAmount: null,
+      source: "email_detected",
+      status: "active",
+      emailMessageId: "test-e-2",
+    })
+    .returning({ id: subscriptions.id });
+  await db
+    .update(users)
+    .set({ awaitingDateForSubId: seededSub2.id })
+    .where(eq(users.id, uE.id));
+
+  const notATrial = await routeMessage({
+    userId: uE.id,
+    phoneNumber: "+15550004444",
+    body: "not a trial",
+    oauthConnected: true,
+    onboardingState: null,
+    awaitingDateForSubId: seededSub2.id,
+  });
+  assert(
+    "'not a trial' reply acknowledges drop",
+    /dropped Some Newsletter from your list/.test(notATrial)
+  );
+  const gone = await db
+    .select({ id: subscriptions.id })
+    .from(subscriptions)
+    .where(eq(subscriptions.id, seededSub2.id));
+  assert("sub is deleted from db", gone.length === 0);
+
   // cleanup: no messages/subs were created in these tests, so this is safe
-  const ids = [uA.id, uC.id, uD.id];
+  const ids = [uA.id, uC.id, uD.id, uE.id];
+  await db.delete(subscriptions).where(eq(subscriptions.userId, uE.id));
   await db.delete(users).where(or(...ids.map((id) => eq(users.id, id))));
 
   console.log(`\n──\n${passed} passed, ${failed} failed`);
