@@ -22,6 +22,9 @@ export const users = sqliteTable("users", {
   onboardingState: text("onboarding_state", {
     enum: ["awaiting_connect"],
   }),
+  // when non-null, the user's next inbound is treated as a date response for
+  // this specific subscription (Nudge just asked "when does it end?")
+  awaitingDateForSubId: text("awaiting_date_for_sub_id"),
   createdAt: text("created_at").default(sql`(datetime('now'))`),
   updatedAt: text("updated_at").default(sql`(datetime('now'))`),
 });
