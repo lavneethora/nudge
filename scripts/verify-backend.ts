@@ -118,6 +118,7 @@ async function simulateCommand(text: string) {
     onboardingState: (user.onboardingState ?? null) as
       | "awaiting_connect"
       | null,
+    awaitingDateForSubId: user.awaitingDateForSubId ?? null,
   });
   await sendSMSToUser(user.id, TEST_PHONE, response);
 }
