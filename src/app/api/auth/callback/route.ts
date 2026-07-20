@@ -46,6 +46,15 @@ export async function GET(request: NextRequest) {
       "all set ✅ gmail is connected — scanning your inbox for active trials now..."
     );
 
+    // Follow-up bubble so users know they can also text me trials directly —
+    // some services (looking at you crunchyroll) don't email a confirmation,
+    // in which case i'd never catch it from email alone.
+    await sendSMSToUser(
+      user.id,
+      phone,
+      "btw — some services don't email a confirmation for trials. if that happens, just text me the trial name + end date and i've got you. like: add spotify aug 15"
+    );
+
     // Trigger initial scan after the redirect response is sent
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
     after(async () => {
