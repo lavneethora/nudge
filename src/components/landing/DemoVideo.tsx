@@ -7,7 +7,7 @@ import { useState } from "react";
 // throws a soft ambient glow matching the footage. Degrades to the blank
 // white card shell while /demo.mp4 doesn't exist yet.
 const SRC = "/demo.mp4";
-const POSTER = "/demo-poster.webp";
+const POSTER = "/demo-poster.jpg";
 
 const videoProps = {
   src: SRC,
