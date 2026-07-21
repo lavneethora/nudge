@@ -7,7 +7,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "verify": "tsx scripts/verify-backend.ts"
+    "verify": "tsx scripts/verify-backend.ts",
+    "remotion:preview": "remotion studio remotion/index.ts",
+    "remotion:render": "remotion render remotion/index.ts Demo public/demo.mp4",
+    "remotion:poster": "remotion still remotion/index.ts Demo public/demo-poster.jpg --frame=60 --image-format=jpeg"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.95.0",
@@ -24,6 +27,7 @@
     "telnyx": "^7.7.0"
   },
   "devDependencies": {
+    "@remotion/cli": "^4.0.495",
     "@tailwindcss/postcss": "^4",
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^20",
@@ -33,6 +37,7 @@
     "drizzle-kit": "^0.31.10",
     "eslint": "^9",
     "eslint-config-next": "16.2.5",
+    "remotion": "^4.0.495",
     "tailwindcss": "^4",
     "tsx": "^4.23.0",
     "typescript": "^5"
