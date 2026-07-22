@@ -12,6 +12,9 @@ import {
   deleteSubscription,
 } from "@/lib/db/queries";
 import { parseUserDate } from "@/lib/dates/parse-user-date";
+import { parseAddRequest } from "@/lib/llm/parse-add";
+import { db } from "@/lib/db/client";
+import { subscriptions } from "@/lib/db/schema";
 
 export type OnboardingState = "awaiting_connect" | null;
 
@@ -139,6 +142,25 @@ export async function routeMessage(ctx: CommandContext): Promise<string> {
       // unparseable — keep state, nudge them for a clearer format
       return `hm, couldn't parse that. try something like "aug 15", "8/15", "in 14 days", or "not a trial" if it isn't one.`;
     }
+  }
+
+  // --- Natural-language add: "youtube tv trial ends on 23rd july" ----------
+  // Fall back to Claude Haiku to see if this is someone trying to add a trial
+  // in freeform language. If yes, insert it just like `add x y` would have.
+  const parsed = await parseAddRequest(trimmed);
+  if (parsed) {
+    await db.insert(subscriptions).values({
+      userId: ctx.userId,
+      vendorName: parsed.vendorName,
+      trialEndDate: parsed.trialEndDate,
+      source: "manual_add",
+      status: "active",
+    });
+    const pretty = new Date(parsed.trialEndDate).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+    });
+    return `got it! i'll ping you before your ${parsed.vendorName} trial ends ${pretty} 👌`;
   }
 
   return 'didnt catch that. text "help" to see what i can do.';
