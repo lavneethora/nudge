@@ -119,6 +119,7 @@ async function simulateCommand(text: string) {
       | "awaiting_connect"
       | null,
     awaitingDateForSubId: user.awaitingDateForSubId ?? null,
+    lastRemindedSubId: user.lastRemindedSubId ?? null,
   });
   await sendSMSToUser(user.id, TEST_PHONE, response);
 }
