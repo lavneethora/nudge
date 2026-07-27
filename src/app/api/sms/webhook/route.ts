@@ -79,6 +79,7 @@ export async function POST(request: NextRequest) {
       | "awaiting_connect"
       | null,
     awaitingDateForSubId: user.awaitingDateForSubId ?? null,
+    lastRemindedSubId: user.lastRemindedSubId ?? null,
   });
 
   await sendSMSToUser(user.id, from, response);
