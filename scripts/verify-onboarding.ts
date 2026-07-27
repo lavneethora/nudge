@@ -13,6 +13,8 @@
 //      copy AND their `users.status` becomes "paused".
 //   E. Scanner-found sub without a date → user gets asked; replying
 //      "aug 15" writes the date + clears state; "not a trial" deletes it.
+//   F. Post-reminder replies: "cancel it" cancels the last-reminded sub,
+//      "cancelling now" marks it cancelled, "thanks" gets a friendly 👍.
 
 import { routeMessage } from "@/lib/sms/router";
 import { createUser, setOnboardingState } from "@/lib/db/queries";
@@ -78,6 +80,7 @@ async function driveIntro(user: { id: string; phoneNumber: string }, text: strin
     body: text,
     oauthConnected: false,
     awaitingDateForSubId: null,
+    lastRemindedSubId: null,
     onboardingState: null,
   });
 }
@@ -108,6 +111,7 @@ async function main() {
     body: "yes",
     oauthConnected: false,
     awaitingDateForSubId: null,
+    lastRemindedSubId: null,
     onboardingState: "awaiting_connect",
   });
   assert("reply contains OAuth link path", /\/auth\/gmail\?phone=/.test(yesReply));
@@ -138,6 +142,7 @@ async function main() {
     body: "STOP",
     oauthConnected: false,
     awaitingDateForSubId: null,
+    lastRemindedSubId: null,
     onboardingState: "awaiting_connect",
   });
   assert("STOP reply starts with 'nudge:'", stopReply.startsWith("nudge:"));
@@ -181,6 +186,7 @@ async function main() {
     oauthConnected: true,
     onboardingState: null,
     awaitingDateForSubId: seededSub.id,
+    lastRemindedSubId: null,
   });
   assert("date reply confirms with vendor name", /Tidal/.test(dateReply));
   assert("date reply names a specific end month", /Aug/.test(dateReply));
@@ -221,6 +227,7 @@ async function main() {
     oauthConnected: true,
     onboardingState: null,
     awaitingDateForSubId: seededSub2.id,
+    lastRemindedSubId: null,
   });
   assert(
     "'not a trial' reply acknowledges drop",
@@ -232,10 +239,135 @@ async function main() {
     .where(eq(subscriptions.id, seededSub2.id));
   assert("sub is deleted from db", gone.length === 0);
 
-  // cleanup: no messages/subs were created in these tests, so this is safe
-  const ids = [uA.id, uC.id, uD.id, uE.id];
-  await db.delete(subscriptions).where(eq(subscriptions.userId, uE.id));
-  await db.delete(users).where(or(...ids.map((id) => eq(users.id, id))));
+  console.log("\n── F. post-reminder replies ──");
+  const F = "+15550005555";
+  const uF = await fresh(F);
+  await db
+    .update(users)
+    .set({ oauthConnected: true })
+    .where(eq(users.id, uF.id));
+
+  // seed two subs so we can test each pattern
+  const [netflixSub] = await db
+    .insert(subscriptions)
+    .values({
+      userId: uF.id,
+      vendorName: "Netflix",
+      trialEndDate: new Date(Date.now() + 2 * 86400000).toISOString().slice(0, 10),
+      billingAmount: 15.49,
+      source: "manual_add",
+      status: "active",
+    })
+    .returning({ id: subscriptions.id });
+  const [spotifySub] = await db
+    .insert(subscriptions)
+    .values({
+      userId: uF.id,
+      vendorName: "Spotify",
+      trialEndDate: new Date(Date.now() + 5 * 86400000).toISOString().slice(0, 10),
+      billingAmount: 11.99,
+      source: "manual_add",
+      status: "active",
+    })
+    .returning({ id: subscriptions.id });
+
+  // F1: "cancel it" with lastRemindedSubId → marks Netflix cancelled
+  await db
+    .update(users)
+    .set({ lastRemindedSubId: netflixSub.id })
+    .where(eq(users.id, uF.id));
+  const cancelItReply = await routeMessage({
+    userId: uF.id,
+    phoneNumber: F,
+    body: "cancel it",
+    oauthConnected: true,
+    onboardingState: null,
+    awaitingDateForSubId: null,
+    lastRemindedSubId: netflixSub.id,
+  });
+  assert("cancel it → mentions Netflix", /Netflix/i.test(cancelItReply));
+  assert("cancel it → mentions cancelled", /cancelled/i.test(cancelItReply));
+  const nfAfter = await db
+    .select({ status: subscriptions.status })
+    .from(subscriptions)
+    .where(eq(subscriptions.id, netflixSub.id))
+    .limit(1);
+  assert(
+    "Netflix sub status is cancelled",
+    nfAfter[0]?.status === "cancelled",
+    `got ${nfAfter[0]?.status}`
+  );
+
+  // F2: "cancelling now" with lastRemindedSubId → marks Spotify cancelled
+  await db
+    .update(users)
+    .set({ lastRemindedSubId: spotifySub.id })
+    .where(eq(users.id, uF.id));
+  const cancellingReply = await routeMessage({
+    userId: uF.id,
+    phoneNumber: F,
+    body: "cancelling now",
+    oauthConnected: true,
+    onboardingState: null,
+    awaitingDateForSubId: null,
+    lastRemindedSubId: spotifySub.id,
+  });
+  assert("cancelling now → mentions Spotify", /Spotify/i.test(cancellingReply));
+  assert("cancelling now → mentions cancelled", /cancelled/i.test(cancellingReply));
+  const spAfter = await db
+    .select({ status: subscriptions.status })
+    .from(subscriptions)
+    .where(eq(subscriptions.id, spotifySub.id))
+    .limit(1);
+  assert(
+    "Spotify sub status is cancelled",
+    spAfter[0]?.status === "cancelled",
+    `got ${spAfter[0]?.status}`
+  );
+
+  // F3: "thanks" → friendly 👍, no state change
+  const thanksReply = await routeMessage({
+    userId: uF.id,
+    phoneNumber: F,
+    body: "thanks",
+    oauthConnected: true,
+    onboardingState: null,
+    awaitingDateForSubId: null,
+    lastRemindedSubId: null,
+  });
+  assert("thanks → gets 👍", thanksReply.includes("👍"));
+
+  // F4: "cancel it" with no lastRemindedSubId → asks which one
+  const bareCancelReply = await routeMessage({
+    userId: uF.id,
+    phoneNumber: F,
+    body: "cancel it",
+    oauthConnected: true,
+    onboardingState: null,
+    awaitingDateForSubId: null,
+    lastRemindedSubId: null,
+  });
+  assert(
+    "cancel it with no context → asks which one",
+    /which one/i.test(bareCancelReply),
+    `got: ${bareCancelReply}`
+  );
+
+  // cleanup
+  const allIds = [uA.id, uC.id, uD.id, uE.id, uF.id];
+  for (const uid of [uE.id, uF.id]) {
+    const subs = await db
+      .select({ id: subscriptions.id })
+      .from(subscriptions)
+      .where(eq(subscriptions.userId, uid));
+    if (subs.length) {
+      await db
+        .delete(remindersSent)
+        .where(inArray(remindersSent.subscriptionId, subs.map((s) => s.id)));
+      await db.delete(subscriptions).where(eq(subscriptions.userId, uid));
+    }
+  }
+  await db.delete(users).where(or(...allIds.map((id) => eq(users.id, id))));
 
   console.log(`\n──\n${passed} passed, ${failed} failed`);
   if (failed > 0) process.exit(1);
