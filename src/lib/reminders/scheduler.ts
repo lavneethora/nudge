@@ -1,7 +1,11 @@
 import { db } from "@/lib/db/client";
 import { subscriptions, users } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
-import { hasReminderBeenSent, recordReminder } from "@/lib/db/queries";
+import {
+  hasReminderBeenSent,
+  recordReminder,
+  setLastRemindedSub,
+} from "@/lib/db/queries";
 import { sendSMSToUser } from "@/lib/messaging";
 
 type ReminderThreshold = {
@@ -90,6 +94,9 @@ export async function processReminders() {
 
     await sendSMSToUser(user.id, user.phoneNumber, msg);
     await recordReminder(subscription.id, threshold.type);
+    // remember the sub we just reminded about so a bare "cancel it" /
+    // "cancelling now" / "thanks" reply can resolve to it
+    await setLastRemindedSub(user.id, subscription.id);
     sent++;
   }
 
