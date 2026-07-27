@@ -10,6 +10,8 @@ import {
   getSubscriptionById,
   updateSubscriptionTrialEnd,
   deleteSubscription,
+  markSubscriptionCancelled,
+  setLastRemindedSub,
 } from "@/lib/db/queries";
 import { parseUserDate } from "@/lib/dates/parse-user-date";
 import { parseAddRequest } from "@/lib/llm/parse-add";
@@ -25,6 +27,7 @@ export type CommandContext = {
   oauthConnected: boolean;
   onboardingState: OnboardingState;
   awaitingDateForSubId: string | null;
+  lastRemindedSubId: string | null;
 };
 
 type CommandRoute = {
@@ -35,7 +38,7 @@ type CommandRoute = {
 const routes: CommandRoute[] = [
   { pattern: /^(help|\?)$/i, handler: (ctx) => handleHelp(ctx) },
   { pattern: /^(list|show|trials|what)/i, handler: (ctx) => handleList(ctx) },
-  { pattern: /^cancel\s+(.+)/i, handler: (ctx, m) => handleCancel(ctx, m[1]) },
+  { pattern: /^cancel\s+(?!it\b|this\b|that\b)(.+)/i, handler: (ctx, m) => handleCancel(ctx, m[1]) },
   { pattern: /^add\s+(.+?)\s+([\w]+\s+\d{1,2}(?:,?\s+\d{4})?)$/i, handler: (ctx, m) => handleAdd(ctx, m[1], m[2]) },
   { pattern: /^snooze\s+(.+)/i, handler: (ctx, m) => handleSnooze(ctx, m[1]) },
 ];
@@ -142,6 +145,49 @@ export async function routeMessage(ctx: CommandContext): Promise<string> {
       // unparseable — keep state, nudge them for a clearer format
       return `hm, couldn't parse that. try something like "aug 15", "8/15", "in 14 days", or "not a trial" if it isn't one.`;
     }
+  }
+
+  // --- Post-reminder conversation --------------------------------------
+  // After a reminder fires, users often reply in short-form: "cancel it",
+  // "thanks", "cancelling now", "already cancelled". Resolve those against
+  // the sub we most recently reminded them about (ctx.lastRemindedSubId).
+
+  // "cancelling now" / "already cancelled" / "done" → mark sub cancelled
+  if (
+    /^(cancelling|canceling|cancelling now|canceling now|already cancelled|already canceled|cancelled|canceled|done|handled|took care of it)!?\.?$/i.test(
+      trimmed
+    )
+  ) {
+    if (ctx.lastRemindedSubId) {
+      const sub = await getSubscriptionById(ctx.lastRemindedSubId);
+      if (sub) {
+        await markSubscriptionCancelled(sub.id);
+        await setLastRemindedSub(ctx.userId, null);
+        return `nice — marked ${sub.vendorName} as cancelled 🙌`;
+      }
+    }
+    return "sweet 👌";
+  }
+
+  // Bare "cancel" / "cancel it" / "cancel this" → cancel last-reminded sub
+  if (/^cancel( it| this| that|)!?\.?$/i.test(trimmed)) {
+    if (ctx.lastRemindedSubId) {
+      const sub = await getSubscriptionById(ctx.lastRemindedSubId);
+      if (sub) {
+        await markSubscriptionCancelled(sub.id);
+        await setLastRemindedSub(ctx.userId, null);
+        const link = sub.cancelUrl
+          ? `\n\ncancel link: ${sub.cancelUrl}`
+          : "";
+        return `on it — marking ${sub.vendorName} as cancelled 🙌${link}`;
+      }
+    }
+    return `which one? text me the vendor like "cancel netflix".`;
+  }
+
+  // Plain acknowledgment — no state changes, just a friendly reply
+  if (/^(thanks|thanks!+|thx|ty|tysm|got it|k|kk|okay|ok|cool|nice|sweet|👍|✅|🙏)$/i.test(trimmed)) {
+    return "👍";
   }
 
   // --- Natural-language add: "youtube tv trial ends on 23rd july" ----------
