@@ -77,6 +77,26 @@ export async function deleteSubscription(subId: string) {
   await db.delete(subscriptions).where(eq(subscriptions.id, subId));
 }
 
+export async function markSubscriptionCancelled(subId: string) {
+  await db
+    .update(subscriptions)
+    .set({
+      status: "cancelled",
+      updatedAt: new Date().toISOString(),
+    })
+    .where(eq(subscriptions.id, subId));
+}
+
+export async function setLastRemindedSub(userId: string, subId: string | null) {
+  await db
+    .update(users)
+    .set({
+      lastRemindedSubId: subId,
+      updatedAt: new Date().toISOString(),
+    })
+    .where(eq(users.id, userId));
+}
+
 export async function getActiveSubscriptions(userId: string) {
   return db
     .select()
