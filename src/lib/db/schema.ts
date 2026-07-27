@@ -25,6 +25,10 @@ export const users = sqliteTable("users", {
   // when non-null, the user's next inbound is treated as a date response for
   // this specific subscription (Nudge just asked "when does it end?")
   awaitingDateForSubId: text("awaiting_date_for_sub_id"),
+  // remembers the most recent sub we sent a reminder for — lets the router
+  // resolve bare "cancel it" / "cancel this" / "cancelling" replies to
+  // the right trial without the user re-naming it.
+  lastRemindedSubId: text("last_reminded_sub_id"),
   createdAt: text("created_at").default(sql`(datetime('now'))`),
   updatedAt: text("updated_at").default(sql`(datetime('now'))`),
 });
