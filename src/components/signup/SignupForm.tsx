@@ -50,7 +50,7 @@ export default function SignupForm({
   }
 
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center px-6 py-16">
+    <section className="min-h-screen flex flex-col items-center justify-center px-6 py-16">
       <div className="w-full max-w-lg">
         <div className="text-center mb-12">
           <h1 className="uppercase font-medium text-[30px] tracking-[0.04em] leading-none text-[rgba(27,27,24,0.92)]">
@@ -185,6 +185,6 @@ export default function SignupForm({
           </div>
         </div>
       </div>
-    </main>
+    </section>
   );
 }
