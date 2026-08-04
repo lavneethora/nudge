@@ -5,6 +5,7 @@ import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
 import SignupForm from "@/components/signup/SignupForm";
+import Navbar from "@/components/landing/Navbar";
 
 gsap.registerPlugin(ScrollTrigger, useGSAP);
 
@@ -27,6 +28,7 @@ export default function SignupReveal() {
 
       if (reduced) {
         gsap.set(cream, { autoAlpha: 1, overflowY: "auto" });
+        gsap.set(q("[data-nav]"), { opacity: 1 });
         gsap.set(q("[data-form]"), { opacity: 1, y: 0 });
         return;
       }
@@ -65,6 +67,12 @@ export default function SignupReveal() {
         1.1
       );
       tl.fromTo(
+        q("[data-nav]"),
+        { opacity: 0 },
+        { opacity: 1, duration: 1.0, ease: "power2.out" },
+        1.5
+      );
+      tl.fromTo(
         q("[data-form]"),
         { opacity: 0, y: 30 },
         { opacity: 1, y: 0, duration: 1.3, ease: "power2.out" },
@@ -91,11 +99,8 @@ export default function SignupReveal() {
         data-cream
         data-lenis-prevent
         className="invisible absolute inset-0 overflow-hidden overscroll-none opacity-0"
-        style={{ backgroundColor: "var(--offwhite)" }}
+        style={{ backgroundColor: "var(--offwhite)", scrollPaddingTop: "60px" }}
       >
-        {/* the campaign page gets its paper grain from body::before, which
-            this opaque layer covers — recreate the exact same texture here
-            (fixed, so it doesn't scroll with the content, just like prod) */}
         <div
           aria-hidden="true"
           className="pointer-events-none fixed inset-0 opacity-60"
@@ -105,6 +110,7 @@ export default function SignupReveal() {
             backgroundSize: "90px 90px",
           }}
         />
+        <Navbar />
         <div data-form className="relative opacity-0">
           <SignupForm showVideo />
         </div>
