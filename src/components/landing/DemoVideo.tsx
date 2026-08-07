@@ -26,7 +26,7 @@ export default function DemoVideo() {
   const [posterOk, setPosterOk] = useState(true);
 
   return (
-    <div className="relative mx-auto mb-10 aspect-video max-h-[34vh] w-auto max-w-full">
+    <div className="relative mx-auto mb-10 aspect-video max-h-[42vh] w-full max-w-xl">
       {/* ambient glow: same video, blurred, behind the card */}
       {videoOk && (
         <div
