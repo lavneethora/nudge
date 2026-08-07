@@ -7,8 +7,6 @@ import DemoVideo from "@/components/landing/DemoVideo";
 export default function SignupForm({
   showVideo = false,
 }: {
-  /** renders the demo-video card between the description and the form —
-      local landing only; the deployed campaign page stays unchanged */
   showVideo?: boolean;
 }) {
   const [phone, setPhone] = useState("");
@@ -37,8 +35,6 @@ export default function SignupForm({
       setSent(true);
 
       setTimeout(() => {
-        // ?&body= is the reliably-cross-platform form (iOS wants &body,
-        // Android wants ?body — the combined ?& works on both)
         const body = encodeURIComponent("so, what is nudge anyway??");
         window.location.href = `sms:${data.smsNumber}?&body=${body}`;
       }, 1500);
@@ -50,9 +46,9 @@ export default function SignupForm({
   }
 
   return (
-    <section className="min-h-screen flex flex-col items-center justify-center px-6 py-16">
+    <section className="min-h-screen flex flex-col items-center justify-center px-6 py-12">
       <div className="w-full max-w-lg">
-        <div className="text-center mb-12">
+        <div className="text-center mb-8">
           <h1 className="uppercase font-medium text-[30px] tracking-[0.04em] leading-none text-[rgba(27,27,24,0.92)]">
             Nudge
           </h1>
@@ -67,9 +63,11 @@ export default function SignupForm({
             before free trials convert to paid charges. No app to download.
           </p>
         </div>
+      </div>
 
-        {showVideo && <DemoVideo />}
+      {showVideo && !sent && <DemoVideo />}
 
+      <div className="w-full max-w-lg">
         {sent ? (
           <p className="text-center text-[14px] text-ink">
             Check your texts — opening Messages now.
