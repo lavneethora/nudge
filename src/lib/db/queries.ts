@@ -1,6 +1,12 @@
 import { eq, and } from "drizzle-orm";
 import { db } from "./client";
-import { users, subscriptions, messages, remindersSent } from "./schema";
+import {
+  users,
+  subscriptions,
+  messages,
+  remindersSent,
+  vendorCancelInfo,
+} from "./schema";
 
 export async function getUserByPhone(phoneNumber: string) {
   const result = await db
@@ -165,4 +171,38 @@ export async function recordReminder(
   reminderType: "5_day" | "2_day" | "final"
 ) {
   await db.insert(remindersSent).values({ subscriptionId, reminderType });
+}
+
+export async function setSubscriptionCancelUrl(
+  subId: string,
+  cancelUrl: string
+) {
+  await db
+    .update(subscriptions)
+    .set({ cancelUrl, updatedAt: new Date().toISOString() })
+    .where(eq(subscriptions.id, subId));
+}
+
+/** Bidirectional lowercase-substring match against the small static/cached
+ * vendor list — same matching style cancel.ts already uses for subscriptions,
+ * since there's no canonical vendor identity table in this project. */
+export async function getVendorCancelInfo(vendorName: string) {
+  const all = await db.select().from(vendorCancelInfo);
+  const needle = vendorName.trim().toLowerCase();
+  return (
+    all.find((v) => {
+      const hay = v.vendorName.toLowerCase();
+      return hay.includes(needle) || needle.includes(hay);
+    }) ?? null
+  );
+}
+
+export async function addVendorCancelInfo(
+  vendorName: string,
+  cancelLink: string,
+  method: string
+) {
+  await db
+    .insert(vendorCancelInfo)
+    .values({ vendorName, cancelLink, method, source: "claude" });
 }
