@@ -22,7 +22,7 @@ export async function handleAdd(
   }
 
   if (parsed < new Date()) {
-    return `that date's in the past — give me a future trial end date.`;
+    return `that date's in the past, give me a future trial end date.`;
   }
 
   await db.insert(subscriptions).values({
