@@ -3,45 +3,80 @@
 import { useState } from "react";
 import { formatUSPhone } from "@/lib/format";
 import DemoVideo from "@/components/landing/DemoVideo";
+import OtpInput from "@/components/signup/OtpInput";
 
 export default function SignupForm({
   showVideo = false,
 }: {
   showVideo?: boolean;
 }) {
+  const [step, setStep] = useState<"phone" | "otp" | "done">("phone");
   const [phone, setPhone] = useState("");
   const [consent, setConsent] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [sent, setSent] = useState(false);
   const [error, setError] = useState("");
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSendOtp(e: React.FormEvent) {
     e.preventDefault();
     setError("");
     setLoading(true);
     try {
-      const res = await fetch("/api/signup", {
+      const res = await fetch("/api/otp/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ phoneNumber: phone, smsConsent: consent }),
       });
-
       if (!res.ok) {
         const data = await res.json();
         throw new Error(data.error || "Something went wrong");
       }
+      setStep("otp");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong");
+    } finally {
+      setLoading(false);
+    }
+  }
 
+  async function handleVerifyOtp(code: string) {
+    setError("");
+    setLoading(true);
+    try {
+      const res = await fetch("/api/otp/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phoneNumber: phone, code }),
+      });
       const data = await res.json();
-      setSent(true);
-
+      if (!res.ok) {
+        throw new Error(data.error || "Verification failed");
+      }
+      setStep("done");
       setTimeout(() => {
         const body = encodeURIComponent("so, what is nudge anyway??");
         window.location.href = `sms:${data.smsNumber}?&body=${body}`;
       }, 1500);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
+      setError(err instanceof Error ? err.message : "Verification failed");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleResend() {
+    setError("");
+    try {
+      const res = await fetch("/api/otp/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phoneNumber: phone, smsConsent: consent }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        setError(data.error || "Failed to resend");
+      }
+    } catch {
+      setError("Failed to resend");
     }
   }
 
@@ -65,15 +100,27 @@ export default function SignupForm({
         </div>
       </div>
 
-      {showVideo && !sent && <DemoVideo />}
+      {showVideo && step === "phone" && <DemoVideo />}
 
       <div className="w-full max-w-lg">
-        {sent ? (
+        {step === "done" ? (
           <p className="text-center text-[14px] text-ink">
             Check your texts — opening Messages now.
           </p>
+        ) : step === "otp" ? (
+          <OtpInput
+            onComplete={handleVerifyOtp}
+            loading={loading}
+            error={error}
+            phone={phone}
+            onResend={handleResend}
+            onChangeNumber={() => {
+              setStep("phone");
+              setError("");
+            }}
+          />
         ) : (
-          <form className="space-y-5" onSubmit={handleSubmit}>
+          <form className="space-y-5" onSubmit={handleSendOtp}>
             <div>
               <label htmlFor="phone" className="sr-only">
                 Mobile phone number
