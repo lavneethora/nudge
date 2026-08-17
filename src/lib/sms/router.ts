@@ -57,7 +57,7 @@ function connectLink(phoneNumber: string) {
 // STOP/HELP keywords stay cased so users can spot them at a glance.
 function intro() {
   return (
-    "hey! im nudge — i watch your inbox and text you before free trials charge your card. " +
+    "hey! im nudge. i watch your inbox and text you before free trials charge your card. " +
     "msg frequency varies, msg & data rates may apply. text HELP for help or STOP to opt out.\n\n" +
     "wanna connect your gmail so i can start scanning?"
   );
@@ -88,7 +88,7 @@ export async function routeMessage(ctx: CommandContext): Promise<string> {
       await setOnboardingState(ctx.userId, null);
       if (YES.test(trimmed)) {
         return (
-          "got it! one sec — here's your gmail connect link:\n" +
+          "got it! here's your gmail connect link:\n" +
           connectLink(ctx.phoneNumber) +
           "\n\noh, and save me in your contacts as \"nudge\" so my texts don't get lost 💾"
         );
@@ -130,17 +130,17 @@ export async function routeMessage(ctx: CommandContext): Promise<string> {
           month: "short",
           day: "numeric",
         });
-        return `perfect — locked in. i'll ping you before your ${sub.vendorName} trial ends ${pretty} 👌`;
+        return `locked in. i'll ping you before your ${sub.vendorName} trial ends ${pretty} 👌`;
       }
       if (parsed.kind === "cancel") {
         await deleteSubscription(subId);
         await setAwaitingDateForSub(ctx.userId, null);
-        return `no worries — dropped ${sub.vendorName} from your list.`;
+        return `no worries, dropped ${sub.vendorName} from your list.`;
       }
       if (parsed.kind === "unknown") {
         // keep the sub, keep the state cleared — user can text `add [name] [date]` later
         await setAwaitingDateForSub(ctx.userId, null);
-        return `all good — i'll keep ${sub.vendorName} on your list without a reminder date. text me "add ${sub.vendorName} [date]" whenever you find out (like "add ${sub.vendorName} aug 15").`;
+        return `all good, i'll keep ${sub.vendorName} on your list without a reminder date. text me "add ${sub.vendorName} [date]" whenever you find out (like "add ${sub.vendorName} aug 15").`;
       }
       // unparseable — keep state, nudge them for a clearer format
       return `hm, couldn't parse that. try something like "aug 15", "8/15", "in 14 days", or "not a trial" if it isn't one.`;
@@ -163,7 +163,7 @@ export async function routeMessage(ctx: CommandContext): Promise<string> {
       if (sub) {
         await markSubscriptionCancelled(sub.id);
         await setLastRemindedSub(ctx.userId, null);
-        return `nice — marked ${sub.vendorName} as cancelled 🙌`;
+        return `marked ${sub.vendorName} as cancelled 🙌`;
       }
     }
     return "sweet 👌";
@@ -179,7 +179,7 @@ export async function routeMessage(ctx: CommandContext): Promise<string> {
         const link = sub.cancelUrl
           ? `\n\ncancel link: ${sub.cancelUrl}`
           : "";
-        return `on it — marking ${sub.vendorName} as cancelled 🙌${link}`;
+        return `marking ${sub.vendorName} as cancelled 🙌${link}`;
       }
     }
     return `which one? text me the vendor like "cancel netflix".`;
