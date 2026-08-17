@@ -81,3 +81,16 @@ export const remindersSent = sqliteTable("reminders_sent", {
   }).notNull(),
   sentAt: text("sent_at").default(sql`(datetime('now'))`),
 });
+
+export const otpCodes = sqliteTable("otp_codes", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  phoneNumber: text("phone_number").notNull(),
+  codeHash: text("code_hash").notNull(),
+  attempts: integer("attempts").notNull().default(0),
+  maxAttempts: integer("max_attempts").notNull().default(5),
+  expiresAt: text("expires_at").notNull(),
+  verifiedAt: text("verified_at"),
+  createdAt: text("created_at").default(sql`(datetime('now'))`),
+});
