@@ -1,7 +1,11 @@
-import { getActiveSubscriptions } from "@/lib/db/queries";
-import { db } from "@/lib/db/client";
-import { subscriptions } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import {
+  getActiveSubscriptions,
+  markSubscriptionCancelled,
+  setSubscriptionCancelUrl,
+  getVendorCancelInfo,
+  addVendorCancelInfo,
+} from "@/lib/db/queries";
+import { findCancelLink } from "@/lib/llm/find-cancel-link";
 import type { CommandContext } from "../router";
 
 export async function handleCancel(
@@ -17,14 +21,31 @@ export async function handleCancel(
     return `couldn't find a trial matching "${serviceName}". text "list" to see your active ones.`;
   }
 
-  if (target.cancelUrl) {
-    await db
-      .update(subscriptions)
-      .set({ status: "cancelled", updatedAt: new Date().toISOString() })
-      .where(eq(subscriptions.id, target.id));
+  const name = target.vendorName.toLowerCase();
 
-    return `here's your ${target.vendorName} cancel link:\n${target.cancelUrl}\n\nmarked as cancelled ✅`;
+  // 1. already has a link captured from the trial email
+  if (target.cancelUrl) {
+    await markSubscriptionCancelled(target.id);
+    return `here's your ${name} cancel link:\n${target.cancelUrl}\n\nmarked as cancelled ✅`;
   }
 
-  return `no cancel link on file for ${target.vendorName}. try googling "${target.vendorName} cancel subscription" or check their site directly.`;
+  // 2. static/cached vendor table
+  const known = await getVendorCancelInfo(target.vendorName);
+  if (known) {
+    await setSubscriptionCancelUrl(target.id, known.cancelLink);
+    await markSubscriptionCancelled(target.id);
+    return `here's your ${name} cancel link:\n${known.cancelLink}\n\nmarked as cancelled ✅`;
+  }
+
+  // 3. ask Claude, and cache a hit so we never look this vendor up twice
+  const found = await findCancelLink(target.vendorName);
+  if (found) {
+    await addVendorCancelInfo(target.vendorName, found.cancelLink, found.method);
+    await setSubscriptionCancelUrl(target.id, found.cancelLink);
+    await markSubscriptionCancelled(target.id);
+    return `here's your ${name} cancel link:\n${found.cancelLink}\n\nmarked as cancelled ✅`;
+  }
+
+  // 4. nothing found anywhere
+  return `no cancel link on file for ${name}. try googling "${name} cancel subscription" or check their site directly.`;
 }
