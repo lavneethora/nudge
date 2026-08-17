@@ -11,7 +11,7 @@ export async function handleList(ctx: CommandContext): Promise<string> {
   const lines = subs.map((s, i) => {
     const amount = s.billingAmount ? ` ($${s.billingAmount}/mo)` : "";
     const date = s.trialEndDate
-      ? ` — ends ${new Date(s.trialEndDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`
+      ? `, ends ${new Date(s.trialEndDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`
       : "";
     return `${i + 1}. ${s.vendorName}${date}${amount}`;
   });
