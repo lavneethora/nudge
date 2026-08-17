@@ -83,7 +83,7 @@ export async function processReminders() {
     } else if (threshold.type === "2_day") {
       msg = `${threshold.emoji} 2 days left on your ${subscription.vendorName} trial (ends ${dateStr}). cancel now to avoid ${amount}.`;
     } else {
-      msg = `${threshold.emoji} heads up — your ${subscription.vendorName} trial ends in ${daysLeft} days (${dateStr}). you'll get charged ${amount} if you don't cancel.`;
+      msg = `${threshold.emoji} heads up, your ${subscription.vendorName} trial ends in ${daysLeft} days (${dateStr}). you'll get charged ${amount} if you don't cancel.`;
     }
 
     if (subscription.cancelUrl) {
