@@ -15,6 +15,13 @@
       "when": 1722816000000,
       "tag": "0004_otp_codes",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1755388800000,
+      "tag": "0005_vendor_cancel_info",
+      "breakpoints": true
     }
   ]
 }
