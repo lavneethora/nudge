@@ -1,0 +1,99 @@
+vendor,category,method,cancel_link_or_instruction,confidence,notes
+Hulu,streaming_video,web,hulu.com/account,high,
+Peacock,streaming_video,web,peacocktv.com/account,high,
+Apple TV+,streaming_video,app_store,Settings > [your name] > Subscriptions,high,
+Discovery+,streaming_video,web,discoveryplus.com/account,medium,may be folded into Max in some regions
+Starz,streaming_video,web,starz.com/account,medium,
+AMC+,streaming_video,web,amcplus.com/account,medium,
+BritBox,streaming_video,web,britbox.com/account,medium,
+Crunchyroll,streaming_video,web,crunchyroll.com/account,high,
+Shudder,streaming_video,web,shudder.com/account,low,
+Acorn TV,streaming_video,web,acorn.tv/account,low,
+Philo,streaming_video,web,philo.com/account,medium,
+Sling TV,streaming_video,web,sling.com/account,medium,
+YouTube TV,streaming_video,web,tv.youtube.com/membership,high,
+fuboTV,streaming_video,web,fubo.tv/account,medium,
+MUBI,streaming_video,web,mubi.com/settings,low,
+Criterion Channel,streaming_video,web,criterionchannel.com/account,low,
+Spotify,music,web,spotify.com/account,high,
+Apple Music,music,app_store,Settings > [your name] > Subscriptions,high,
+YouTube Music Premium,music,web,accounts.google.com > YouTube Premium membership,medium,
+Tidal,music,web,tidal.com/account,high,confirmed via user's own cancel attempt in this project
+Amazon Music Unlimited,music,web,amazon.com/musicunlimited (manage subscription),medium,
+Pandora Premium,music,web,pandora.com/account,medium,
+SiriusXM,music,call_or_chat,siriusxm.com/manage or call 866-635-8641,medium,notoriously requires call or live chat to fully cancel
+Audible,music,web,audible.com (Account Details > Cancel Membership),high,
+Deezer,music,web,deezer.com/account,low,
+The Athletic,news,web,theathletic.com/account,medium,owned by NYT
+The Economist,news,web,economist.com/myaccount,low,
+WIRED,news,web,account.wired.com,low,Conde Nast account portal
+Scribd,news,web,scribd.com/account,medium,
+Kindle Unlimited,news,web,amazon.com/kindle-unlimited (manage membership),high,
+Apple News+,news,app_store,Settings > [your name] > Subscriptions,high,
+Adobe Creative Cloud,productivity,web_or_call,account.adobe.com,medium,may involve early-termination fee on annual plans; sometimes needs chat
+Canva Pro,productivity,web,canva.com/settings/billing,medium,
+Dropbox,productivity,web,dropbox.com/account/billing,medium,
+Google One,productivity,web,one.google.com/settings,high,
+iCloud+,productivity,app_store,Settings > [your name] > iCloud > Manage Storage Plan,high,
+Microsoft 365,productivity,web,account.microsoft.com/services,medium,
+Grammarly,productivity,web,account.grammarly.com/subscription,medium,
+LastPass,productivity,web,lastpass.com/account,low,
+1Password,productivity,web,1password.com/account (billing),low,
+Todoist,productivity,web,todoist.com/app/settings/subscription,low,
+Asana,productivity,web,app.asana.com/admin/billing,low,
+Zoom Pro,productivity,web,zoom.us/account/billing,low,
+Peloton App,fitness,web,members.onepeloton.com,medium,digital/app subscription tier, not the hardware
+ClassPass,fitness,web,classpass.com/account,medium,
+Headspace,fitness,web_or_store,headspace.com/account,medium,also cancellable via App/Play Store if subscribed that way
+Calm,fitness,web_or_store,calm.com/account,medium,same App/Play Store caveat as Headspace
+Noom,fitness,web_or_call,noom.com,low,frequently requires chat/call to fully cancel
+MyFitnessPal Premium,fitness,web_or_store,myfitnesspal.com/account,medium,
+Strava,fitness,web,strava.com/settings/subscription,medium,
+WeightWatchers (WW),fitness,call_or_chat,weightwatchers.com,low,commonly requires phone or chat
+Whoop,fitness,web,whoop.com (membership settings),low,hardware + membership bundle
+Xbox Game Pass,gaming,web,account.microsoft.com/services,high,
+Nintendo Switch Online,gaming,web,accounts.nintendo.com,high,
+Apple Arcade,gaming,app_store,Settings > [your name] > Subscriptions,high,
+GeForce Now,gaming,web,nvidia.com account (membership),low,
+Amazon Prime,shopping,web,amazon.com/manageprime (End Membership),high,
+Walmart+,shopping,web,walmart.com/plus (manage membership),medium,
+Instacart+,shopping,web,instacart.com/account/membership,medium,
+DoorDash DashPass,shopping,web_or_app,doordash.com (manage DashPass),medium,
+Uber One,shopping,web_or_app,ubereats.com/account,medium,
+Shipt,shopping,web,shipt.com/account,low,
+Sam's Club Plus,shopping,web,samsclub.com/account/membership,low,
+Grubhub+,shopping,web,grubhub.com/account,low,
+NordVPN,security,web,nordaccount.com (subscriptions),medium,
+ExpressVPN,security,web,expressvpn.com (My Account > Subscription),medium,
+Surfshark,security,web,surfshark.com/account,medium,
+Norton 360,security,web_or_call,my.norton.com,low,notoriously persistent retention flow; may need call
+McAfee,security,web_or_call,mcafee.com/mysubscriptions,low,same retention-flow caveat as Norton
+Malwarebytes,security,web,my.malwarebytes.com,low,
+Bumble Premium,dating,app_store_or_play_store,cancel via App Store / Play Store subscriptions,high,
+Match.com,dating,web,match.com/account (subscription settings),medium,
+Coursera Plus,education,web,coursera.org/account/subscriptions,medium,
+MasterClass,education,web,masterclass.com/account,medium,
+Skillshare,education,web,skillshare.com/settings/billing,medium,
+Duolingo Super,education,web_or_store,learn.duolingo.com/settings,medium,
+Codecademy Pro,education,web,codecademy.com/settings/billing,low,
+LinkedIn Learning,education,web,linkedin.com/premium/manage,medium,
+Brilliant,education,web,brilliant.org/settings,low,
+HelloFresh,meal_kit,web,hellofresh.com/my-account,medium,
+Blue Apron,meal_kit,web,blueapron.com/account,low,
+Factor (Factor75),meal_kit,web,factor75.com/account,low,
+GitHub Copilot,software,web,github.com/settings/copilot,high,
+ChatGPT Plus,software,web,chat.openai.com (settings > subscription),medium,
+Perplexity Pro,software,web,perplexity.ai/settings/account,low,
+LinkedIn Premium,misc,web,linkedin.com/premium/manage,medium,
+Blinkist,misc,web,blinkist.com/account,low,
+Storytel,misc,web,storytel.com/account,low,
+Equinox+,fitness,web,equinoxplus.com/account,low,
+Fitbit Premium,fitness,web_or_app,fitbit.com/premium (account.fitbit.com),medium,
+Garmin Connect+,fitness,web,garmin.com (account),low,
+iFit (NordicTrack),fitness,web_or_call,ifit.com/account,low,retention-heavy cancellation flow reported
+Squarespace,software,web,account.squarespace.com,low,
+Wix Premium,software,web,wix.com/account,low,
+Ancestry.com,misc,web_or_call,ancestry.com/account/membershipsettings,low,notoriously requires phone call to fully cancel
+MyHeritage,misc,web_or_call,myheritage.com/account,low,
+Frndly TV,streaming_video,web,frndlytv.com/account,medium,user-confirmed offers a free trial
+DirecTV Stream,streaming_video,web,stream.directv.com/account,medium,user-confirmed offers a free trial
