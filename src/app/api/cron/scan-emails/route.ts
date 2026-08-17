@@ -120,7 +120,7 @@ export async function GET(request: NextRequest) {
           const lines = withDate.map((r) => {
             const trial = newTrials.find((t) => t.vendorName === r.vendorName)!;
             const amount = trial.billingAmount ? ` ($${trial.billingAmount}/mo)` : "";
-            const date = ` — ends ${new Date(r.trialEndDate!).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`;
+            const date = `, ends ${new Date(r.trialEndDate!).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`;
             return `• ${r.vendorName}${date}${amount}`;
           });
           const msg =
@@ -139,7 +139,7 @@ export async function GET(request: NextRequest) {
           await setAwaitingDateForSub(user.id, first.id);
           const extraNote =
             withoutDate.length > 1
-              ? `\n\nps: found ${withoutDate.length - 1} more without dates — text "list" to see them.`
+              ? `\n\nps: found ${withoutDate.length - 1} more without dates. text "list" to see them.`
               : "";
           await sendSMSToUser(
             user.id,
