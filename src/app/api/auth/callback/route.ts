@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
     await sendSMSToUser(
       user.id,
       phone,
-      "all set ✅ gmail is connected — scanning your inbox for active trials now..."
+      "all set ✅ gmail is connected! scanning your inbox for active trials now..."
     );
 
     // Follow-up bubble so users know they can also text me trials directly —
@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
     await sendSMSToUser(
       user.id,
       phone,
-      "btw — some services don't email a confirmation for trials. if that happens, just text me the trial name + end date and i've got you. like: add spotify aug 15"
+      "btw some services don't email a confirmation for trials. if that happens, just text me the trial name + end date and i've got you. like: add spotify aug 15"
     );
 
     // Trigger initial scan after the redirect response is sent
