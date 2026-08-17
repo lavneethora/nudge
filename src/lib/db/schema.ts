@@ -82,6 +82,23 @@ export const remindersSent = sqliteTable("reminders_sent", {
   sentAt: text("sent_at").default(sql`(datetime('now'))`),
 });
 
+export const vendorCancelInfo = sqliteTable("vendor_cancel_info", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  vendorName: text("vendor_name").notNull(),
+  // web / app_store / play_store / call_or_chat / mixed — informational only,
+  // not branched on yet; cancelLink already reads fine whether it's a URL or
+  // a plain-text instruction
+  method: text("method"),
+  cancelLink: text("cancel_link").notNull(),
+  source: text("source", { enum: ["seed", "claude"] })
+    .notNull()
+    .default("seed"),
+  notes: text("notes"),
+  createdAt: text("created_at").default(sql`(datetime('now'))`),
+});
+
 export const otpCodes = sqliteTable("otp_codes", {
   id: text("id")
     .primaryKey()
