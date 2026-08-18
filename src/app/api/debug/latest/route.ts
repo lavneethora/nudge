@@ -4,10 +4,20 @@ import { subscriptions, messages, users, remindersSent } from "@/lib/db/schema";
 import { desc, eq } from "drizzle-orm";
 import { isCronAuthorized } from "@/lib/cron-auth";
 
-// GET /api/debug/latest — CRON_SECRET-authed inspection endpoint for
-// figuring out what the scanner just found without SSH-ing into Turso.
-// Returns the most recent subs + outbound SMS. Not shown in the UI anywhere.
+// GET /api/debug/latest — local inspection endpoint for figuring out what the
+// scanner just found without SSH-ing into Turso.
+//
+// Disabled in production: it returns every column of up to 50 user rows plus
+// raw SMS bodies, which is a full PII dump behind a single shared secret.
+// Use the Turso shell against prod instead.
+function isDisabled() {
+  return process.env.NODE_ENV === "production";
+}
+
 export async function GET(request: NextRequest) {
+  if (isDisabled()) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
   if (!isCronAuthorized(request)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -25,6 +35,9 @@ export async function GET(request: NextRequest) {
 // (and its reminder-sent rows) so it stops showing up in `list` /
 // re-triggering reminders. CRON_SECRET-authed.
 export async function DELETE(request: NextRequest) {
+  if (isDisabled()) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
   if (!isCronAuthorized(request)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
