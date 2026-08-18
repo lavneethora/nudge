@@ -36,6 +36,23 @@ const TOOL_DEFINITION: Anthropic.Tool = {
   },
 };
 
+// The model's answer is texted to a user as an authoritative cancel link, so
+// a hallucinated or typosquatted domain is a real harm. Accept only something
+// shaped like a bare domain/path, and reject anything that looks like a
+// redirector, an IP, or a non-http scheme.
+function isPlausibleCancelLink(value: string): boolean {
+  if (value.length > 200) return false;
+  // Plain-text instructions (app store paths etc.) are fine — they contain
+  // spaces and aren't clickable, so they can't send anyone to a bad domain.
+  if (/\s/.test(value)) return true;
+
+  const withoutScheme = value.replace(/^https?:\/\//i, "");
+  if (!/^[a-z0-9.-]+\.[a-z]{2,}(\/[^\s]*)?$/i.test(withoutScheme)) return false;
+  // Bare IPs are never a legitimate vendor cancel page
+  if (/^\d+\.\d+\.\d+\.\d+/.test(withoutScheme)) return false;
+  return true;
+}
+
 /** Fallback lookup for a vendor not in the static/cached vendor_cancel_info
  * table. Returns null if the model isn't confident enough to call the tool. */
 export async function findCancelLink(
@@ -59,7 +76,7 @@ export async function findCancelLink(
       const input = block.input as Record<string, unknown>;
       const cancelLink = String(input.cancel_link ?? "").trim();
       const method = String(input.method ?? "").trim();
-      if (!cancelLink) return null;
+      if (!cancelLink || !isPlausibleCancelLink(cancelLink)) return null;
       return { cancelLink, method };
     }
   }
