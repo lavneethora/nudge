@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Geist_Mono, IBM_Plex_Mono } from "next/font/google";
-import Footer from "@/components/landing/Footer";
 import "./globals.css";
 
 // Open-font stand-ins for virio's Haffer XH SemiMono (commercial, unlicensed).
@@ -34,10 +33,7 @@ export default function RootLayout({
       lang="en"
       className={`${geistMono.variable} ${plexMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">
-        {children}
-        <Footer />
-      </body>
+      <body className="min-h-full flex flex-col">{children}</body>
     </html>
   );
 }
