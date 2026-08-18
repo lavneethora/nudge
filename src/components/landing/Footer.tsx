@@ -1,8 +1,5 @@
 import Link from "next/link";
 
-const TERMS_URL =
-  "https://www.termsfeed.com/live/c05cbfe9-6347-40ef-84a9-8b717adb1344";
-
 // Deliberately not a "footer bar" — no border, no background of its own, so it
 // sits on the same cream + grain surface as everything above it. It's just
 // quiet text at the bottom of the signup screen. Exists because Google's OAuth
@@ -25,14 +22,12 @@ export default function Footer({
       >
         privacy
       </Link>
-      <a
-        href={TERMS_URL}
-        target="_blank"
-        rel="noopener noreferrer"
+      <Link
+        href="/legal/terms"
         className="transition-colors hover:text-[rgba(27,27,24,0.6)]"
       >
         terms
-      </a>
+      </Link>
       <Link
         href="/contact"
         className="transition-colors hover:text-[rgba(27,27,24,0.6)]"

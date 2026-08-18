@@ -187,12 +187,7 @@ export default function SignupForm({
             <p className="text-[11px] text-center text-[rgba(27,27,24,0.5)] leading-relaxed pt-2">
               Only Gmail read-only access needed. By continuing, you also
               agree to our{" "}
-              <a
-                href="https://www.termsfeed.com/live/c05cbfe9-6347-40ef-84a9-8b717adb1344"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="underline hover:text-ink"
-              >
+              <a className="underline hover:text-ink" href="/legal/terms">
                 Terms &amp; Conditions
               </a>{" "}
               and{" "}
