@@ -4,6 +4,8 @@ import { handleAdd } from "./commands/add";
 import { handleSnooze } from "./commands/snooze";
 import { handleHelp } from "./commands/help";
 import { handleStop } from "./commands/stop";
+import { handleDisconnect, handleDelete } from "./commands/disconnect";
+import { isCrisisMessage, crisisResponse } from "./crisis";
 import {
   setOnboardingState,
   setAwaitingDateForSub,
@@ -66,6 +68,13 @@ function intro() {
 export async function routeMessage(ctx: CommandContext): Promise<string> {
   const trimmed = ctx.body.trim();
 
+  // Checked before everything else, including the LLM fallback. A person in
+  // crisis should never get "didnt catch that" or have their message shipped
+  // to a third-party model.
+  if (isCrisisMessage(trimmed)) {
+    return crisisResponse();
+  }
+
   // STOP/START must always work — even mid-onboarding — so an opt-out actually
   // pauses the record instead of just replying (this is the compliance guarantee).
   if (/^(stop|pause|quit|unsubscribe|cancel|end)$/i.test(trimmed)) {
@@ -73,6 +82,16 @@ export async function routeMessage(ctx: CommandContext): Promise<string> {
   }
   if (/^(start|resume|go|unstop)$/i.test(trimmed)) {
     return handleStop(ctx, "resume");
+  }
+
+  // Data-rights commands, available at any point in the funnel. These are the
+  // self-serve paths the privacy policy promises, so they must not be gated
+  // behind onboarding state.
+  if (/^(disconnect|revoke|unlink)$/i.test(trimmed)) {
+    return handleDisconnect(ctx);
+  }
+  if (/^(delete|delete me|delete account|forget me)$/i.test(trimmed)) {
+    return handleDelete(ctx);
   }
 
   // --- Poke-style conversational onboarding (pre-OAuth) ---
