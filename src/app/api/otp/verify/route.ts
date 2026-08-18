@@ -1,16 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
 import { normalizeToE164 } from "@/lib/phone";
 import { verifyOtp } from "@/lib/otp";
-import { getUserByPhone, createUser } from "@/lib/db/queries";
+import {
+  getUserByPhone,
+  createUser,
+  recordSmsConsent,
+} from "@/lib/db/queries";
 
 export async function POST(request: NextRequest) {
-  const { phoneNumber, code } = await request.json();
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid request" }, { status: 400 });
+  }
 
-  if (!phoneNumber || !code) {
+  const { phoneNumber, code } = (body ?? {}) as Record<string, unknown>;
+
+  // Both must be strings — a number here would blow up createHash downstream
+  if (typeof phoneNumber !== "string" || typeof code !== "string") {
     return NextResponse.json(
       { error: "Phone and code are required" },
       { status: 400 },
     );
+  }
+
+  if (phoneNumber.length > 20 || !/^\d{6}$/.test(code)) {
+    return NextResponse.json({ error: "Invalid request" }, { status: 400 });
   }
 
   const norm = normalizeToE164(phoneNumber);
@@ -41,6 +57,10 @@ export async function POST(request: NextRequest) {
   if (!user) {
     user = await createUser(norm.e164);
   }
+
+  // Consent was asserted on the form and is only now provable — the code that
+  // reached this phone confirms the person opting in controls the number.
+  await recordSmsConsent(user.id);
 
   return NextResponse.json({
     success: true,

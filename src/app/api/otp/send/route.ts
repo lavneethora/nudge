@@ -4,16 +4,25 @@ import { createAndSendOtp } from "@/lib/otp";
 import { getProvider } from "@/lib/messaging";
 
 export async function POST(request: NextRequest) {
-  const { phoneNumber, smsConsent } = await request.json();
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid request" }, { status: 400 });
+  }
 
-  if (!phoneNumber || typeof phoneNumber !== "string") {
+  const { phoneNumber, smsConsent } = (body ?? {}) as Record<string, unknown>;
+
+  if (typeof phoneNumber !== "string" || phoneNumber.length > 20) {
     return NextResponse.json(
       { error: "Phone number is required" },
       { status: 400 },
     );
   }
 
-  if (!smsConsent) {
+  // Must be a real boolean true — not just any truthy value, since this is
+  // the consent artifact we record and would rely on in a TCPA dispute.
+  if (smsConsent !== true) {
     return NextResponse.json(
       { error: "SMS consent is required" },
       { status: 400 },
@@ -25,12 +34,21 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: norm.error }, { status: 400 });
   }
 
-  const result = await createAndSendOtp(norm.e164, async (phone, code) => {
-    await getProvider().send(
-      phone,
-      `hey! here's your code to get started with nudge: ${code}`,
-    );
-  });
+  const requestIp =
+    request.headers.get("x-forwarded-for")?.split(",")[0].trim() ||
+    request.headers.get("x-real-ip") ||
+    null;
+
+  const result = await createAndSendOtp(
+    norm.e164,
+    async (phone, code) => {
+      await getProvider().send(
+        phone,
+        `hey! here's your code to get started with nudge: ${code}`,
+      );
+    },
+    requestIp,
+  );
 
   if (!result.ok) {
     if (result.error === "rate_limited") {
