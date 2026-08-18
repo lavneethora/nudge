@@ -11,5 +11,7 @@ export async function handleHelp(_ctx: CommandContext): Promise<string> {
     "add [service] [date]: track a trial manually",
     "snooze [service]: delay reminders 24hrs",
     "stop: unsubscribe",
+    "disconnect: revoke my gmail access",
+    "delete: erase your account and all your data",
   ].join("\n");
 }
