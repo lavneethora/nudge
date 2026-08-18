@@ -30,7 +30,8 @@ function GmailAuthContent() {
           <p className="text-gray-600 mb-6">
             Nudge needs read-only access to your Gmail to scan for subscription
             trial emails. We never store your emails — only trial details like
-            vendor names and dates.
+            vendor names and dates. Matching emails are analyzed by an AI model
+            (Anthropic&apos;s Claude) to pull out those details.
           </p>
           <a
             href={connectUrl}
@@ -39,8 +40,16 @@ function GmailAuthContent() {
             Connect Gmail
           </a>
           <p className="text-xs text-gray-400 mt-4">
-            We only request read-only access. You can disconnect anytime by
-            texting &quot;stop&quot;.
+            We only request read-only access — we can never send, delete, or
+            modify anything. Text{" "}
+            <span className="font-semibold">&quot;disconnect&quot;</span> anytime
+            to revoke this access and delete the stored tokens, or{" "}
+            <span className="font-semibold">&quot;delete&quot;</span> to erase
+            your account entirely. See our{" "}
+            <a href="/legal/privacy" className="underline hover:text-gray-600">
+              Privacy Policy
+            </a>
+            .
           </p>
         </div>
       </div>
