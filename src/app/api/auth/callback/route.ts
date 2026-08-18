@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse, after } from "next/server";
-import { exchangeCodeForTokens, storeTokens } from "@/lib/gmail/oauth";
-import { getUserByPhone } from "@/lib/db/queries";
+import {
+  exchangeCodeForTokens,
+  storeTokens,
+  consumeOAuthState,
+} from "@/lib/gmail/oauth";
 import { sendSMSToUser } from "@/lib/messaging";
 
 export async function GET(request: NextRequest) {
@@ -15,26 +18,23 @@ export async function GET(request: NextRequest) {
   }
 
   if (!code || !state) {
-    return NextResponse.json(
-      { error: "Missing code or state" },
-      { status: 400 }
+    return NextResponse.redirect(
+      new URL("/auth/gmail/success?status=error", request.url)
     );
   }
 
-  let phone: string;
-  try {
-    const decoded = JSON.parse(
-      Buffer.from(state, "base64url").toString("utf-8")
-    );
-    phone = decoded.phone;
-  } catch {
-    return NextResponse.json({ error: "Invalid state" }, { status: 400 });
-  }
-
-  const user = await getUserByPhone(phone);
+  // The state nonce is what identifies the user — it was minted server-side
+  // for exactly this flow and is burned on use. A forged or replayed state
+  // resolves to nothing, so tokens can never land on someone else's row.
+  // Every failure path below returns the SAME response, so this endpoint
+  // can't be used to probe which phone numbers are registered.
+  const user = await consumeOAuthState(state);
   if (!user) {
-    return NextResponse.json({ error: "User not found" }, { status: 404 });
+    return NextResponse.redirect(
+      new URL("/auth/gmail/success?status=error", request.url)
+    );
   }
+  const phone = user.phoneNumber;
 
   try {
     const tokens = await exchangeCodeForTokens(code);
@@ -59,8 +59,11 @@ export async function GET(request: NextRequest) {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
     after(async () => {
       try {
+        // Secret goes in a header, never the query string — query params end
+        // up in Vercel access logs and any proxy in between.
         const res = await fetch(
-          `${appUrl}/api/cron/scan-emails?userId=${user.id}&secret=${process.env.CRON_SECRET}`
+          `${appUrl}/api/cron/scan-emails?userId=${encodeURIComponent(user.id)}`,
+          { headers: { authorization: `Bearer ${process.env.CRON_SECRET}` } }
         );
         if (!res.ok) {
           console.error(
