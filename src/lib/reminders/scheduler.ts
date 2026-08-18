@@ -86,10 +86,13 @@ export async function processReminders() {
       msg = `${threshold.emoji} heads up, your ${subscription.vendorName} trial ends in ${daysLeft} days (${dateStr}). you'll get charged ${amount} if you don't cancel.`;
     }
 
+    // Never invite a bare "cancel" reply — that's a carrier-mandated opt-out
+    // keyword, so it would unsubscribe them from Nudge entirely while they
+    // think they're cancelling the trial.
     if (subscription.cancelUrl) {
       msg += `\n\ncancel here: ${subscription.cancelUrl}`;
     } else {
-      msg += `\n\ntext "cancel ${subscription.vendorName}" and i'll help.`;
+      msg += `\n\ntext "cancel ${subscription.vendorName.toLowerCase()}" and i'll help.`;
     }
 
     await sendSMSToUser(user.id, user.phoneNumber, msg);
