@@ -137,13 +137,21 @@ async function triggerCronRoutes() {
   const secret = process.env.CRON_SECRET;
   for (const route of ["send-reminders", "scan-emails"]) {
     try {
-      const ok = await fetch(`${BASE_URL}/api/cron/${route}?secret=${secret}`);
+      const ok = await fetch(`${BASE_URL}/api/cron/${route}`, {
+        headers: { authorization: `Bearer ${secret}` },
+      });
       const body = await ok.json();
       if (ok.status === 200) pass(`${route} with correct secret → 200 ${JSON.stringify(body)}`);
       else fail(`${route} with correct secret → ${ok.status}`);
-      const bad = await fetch(`${BASE_URL}/api/cron/${route}?secret=wrong`);
+      const bad = await fetch(`${BASE_URL}/api/cron/${route}`, {
+        headers: { authorization: "Bearer wrong" },
+      });
       if (bad.status === 401) pass(`${route} with wrong secret → 401`);
       else fail(`${route} with wrong secret → ${bad.status} (expected 401)`);
+      // the query-param path was removed deliberately; make sure it stays gone
+      const viaQuery = await fetch(`${BASE_URL}/api/cron/${route}?secret=${secret}`);
+      if (viaQuery.status === 401) pass(`${route} via ?secret= query param → 401 (rejected)`);
+      else fail(`${route} via ?secret= → ${viaQuery.status} (secret must not work in URLs)`);
     } catch {
       fail(`Could not reach ${BASE_URL} — is "npm run dev" running?`);
       return;
