@@ -7,6 +7,10 @@ const OTP_EXPIRY_MINUTES = 10;
 const MAX_ATTEMPTS = 5;
 const MAX_SENDS_PER_WINDOW = 3;
 const SEND_WINDOW_MINUTES = 15;
+// Per-phone limits alone don't stop SMS pumping — an attacker just iterates
+// phone numbers, and every send costs real money. Cap each source IP too.
+const MAX_SENDS_PER_IP = 10;
+const IP_WINDOW_MINUTES = 60;
 
 function hashCode(code: string): string {
   return createHash("sha256").update(code).digest("hex");
@@ -35,8 +39,30 @@ export type SendResult =
 export async function createAndSendOtp(
   phoneNumber: string,
   sendFn: (phone: string, code: string) => Promise<void>,
+  requestIp?: string | null,
 ): Promise<SendResult> {
   await cleanupExpiredOtps();
+
+  if (requestIp) {
+    const ipWindowStart = minutesAgo(IP_WINDOW_MINUTES);
+    const recentFromIp = await db
+      .select()
+      .from(otpCodes)
+      .where(
+        and(
+          eq(otpCodes.requestIp, requestIp),
+          gt(otpCodes.createdAt, ipWindowStart),
+        ),
+      );
+
+    if (recentFromIp.length >= MAX_SENDS_PER_IP) {
+      return {
+        ok: false,
+        error: "rate_limited",
+        retryAfterSeconds: IP_WINDOW_MINUTES * 60,
+      };
+    }
+  }
 
   const windowStart = minutesAgo(SEND_WINDOW_MINUTES);
   const recentCodes = await db
@@ -72,6 +98,7 @@ export async function createAndSendOtp(
     codeHash: hashCode(code),
     maxAttempts: MAX_ATTEMPTS,
     expiresAt,
+    requestIp: requestIp ?? null,
   });
 
   try {
