@@ -29,6 +29,10 @@ export const users = sqliteTable("users", {
   // resolve bare "cancel it" / "cancel this" / "cancelling" replies to
   // the right trial without the user re-naming it.
   lastRemindedSubId: text("last_reminded_sub_id"),
+  // Timestamp of the SMS opt-in. The privacy policy promises we keep this
+  // record, and it's the artifact we'd need in a TCPA or carrier dispute.
+  // Null for users created by texting in first (consent by initiation).
+  smsConsentAt: text("sms_consent_at"),
   createdAt: text("created_at").default(sql`(datetime('now'))`),
   updatedAt: text("updated_at").default(sql`(datetime('now'))`),
 });
@@ -109,5 +113,8 @@ export const otpCodes = sqliteTable("otp_codes", {
   maxAttempts: integer("max_attempts").notNull().default(5),
   expiresAt: text("expires_at").notNull(),
   verifiedAt: text("verified_at"),
+  // Source IP of the send request, used for per-IP throttling. Per-phone
+  // limits alone don't stop someone iterating numbers to pump paid SMS.
+  requestIp: text("request_ip"),
   createdAt: text("created_at").default(sql`(datetime('now'))`),
 });
