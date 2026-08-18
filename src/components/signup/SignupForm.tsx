@@ -4,6 +4,7 @@ import { useState } from "react";
 import { formatUSPhone } from "@/lib/format";
 import DemoVideo from "@/components/landing/DemoVideo";
 import OtpInput from "@/components/signup/OtpInput";
+import Footer from "@/components/landing/Footer";
 
 export default function SignupForm({
   showVideo = false,
@@ -229,6 +230,8 @@ export default function SignupForm({
             </p>
           </div>
         </div>
+
+        <Footer />
       </div>
     </section>
   );
