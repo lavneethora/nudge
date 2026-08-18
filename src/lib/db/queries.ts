@@ -6,6 +6,7 @@ import {
   messages,
   remindersSent,
   vendorCancelInfo,
+  otpCodes,
 } from "./schema";
 
 export async function getUserByPhone(phoneNumber: string) {
@@ -171,6 +172,47 @@ export async function recordReminder(
   reminderType: "5_day" | "2_day" | "final"
 ) {
   await db.insert(remindersSent).values({ subscriptionId, reminderType });
+}
+
+/** Hard-delete a user and everything belonging to them. Order matters —
+ * reminders_sent and subscriptions carry FK references, so children go first.
+ * This is what backs the "delete" SMS command and the deletion promise in the
+ * privacy policy; nothing here is a soft flag. */
+export async function deleteUserCompletely(userId: string) {
+  const subs = await db
+    .select({ id: subscriptions.id })
+    .from(subscriptions)
+    .where(eq(subscriptions.userId, userId));
+
+  for (const sub of subs) {
+    await db
+      .delete(remindersSent)
+      .where(eq(remindersSent.subscriptionId, sub.id));
+  }
+
+  await db.delete(subscriptions).where(eq(subscriptions.userId, userId));
+  await db.delete(messages).where(eq(messages.userId, userId));
+
+  const rows = await db
+    .select({ phoneNumber: users.phoneNumber })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+  if (rows[0]) {
+    await db.delete(otpCodes).where(eq(otpCodes.phoneNumber, rows[0].phoneNumber));
+  }
+
+  await db.delete(users).where(eq(users.id, userId));
+}
+
+export async function recordSmsConsent(userId: string) {
+  await db
+    .update(users)
+    .set({
+      smsConsentAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    })
+    .where(eq(users.id, userId));
 }
 
 export async function setSubscriptionCancelUrl(
