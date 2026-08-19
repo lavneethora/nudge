@@ -10,7 +10,8 @@
     "verify": "tsx scripts/verify-backend.ts",
     "remotion:preview": "remotion studio remotion/index.ts",
     "remotion:render": "remotion render remotion/index.ts Demo public/demo.mp4",
-    "remotion:poster": "remotion still remotion/index.ts Demo public/demo-poster.jpg --frame=60 --image-format=jpeg"
+    "remotion:poster": "remotion still remotion/index.ts Demo public/demo-poster.jpg --frame=60 --image-format=jpeg",
+    "costs": "tsx scripts/telnyx-costs.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.95.0",
