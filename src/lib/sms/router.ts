@@ -64,7 +64,7 @@ async function connectLink(userId: string) {
 // STOP/HELP keywords stay cased so users can spot them at a glance.
 function intro() {
   return (
-    "hey! im nudge. i watch your inbox and text you before free trials charge your card. " +
+    "hey! im nudge. i watch your inbox and text you before free trials charge your card.\n\n" +
     "msg frequency varies, msg & data rates may apply. text HELP for help or STOP to opt out.\n\n" +
     "wanna connect your gmail so i can start scanning?"
   );
