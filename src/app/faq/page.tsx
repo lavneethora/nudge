@@ -2,6 +2,14 @@ import Navbar from "@/components/landing/Navbar";
 import FAQ from "@/components/landing/FAQ";
 import Footer from "@/components/landing/Footer";
 import { jsonLdScript, faqPageLd } from "@/lib/jsonld";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Nudge FAQ",
+  description:
+    "Common questions about cost, Gmail access, cancelling trials, and stopping messages.",
+  alternates: { canonical: "/faq" },
+};
 
 export default function FAQPage() {
   return (

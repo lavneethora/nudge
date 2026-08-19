@@ -1,6 +1,14 @@
 import Navbar from "@/components/landing/Navbar";
 import HowItWorks from "@/components/landing/HowItWorks";
 import Footer from "@/components/landing/Footer";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "How Nudge works",
+  description:
+    "Connect Gmail, Nudge detects your free trials, and texts you five days, two days, and the day before you get charged.",
+  alternates: { canonical: "/how-it-works" },
+};
 
 export default function HowItWorksPage() {
   return (

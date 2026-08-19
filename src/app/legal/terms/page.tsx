@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/legal/terms" },
   title: "Terms & Conditions — Nudge",
   description:
     "The terms governing your use of Nudge, the SMS-based subscription trial reminder service.",

@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/legal/privacy" },
   title: "Privacy Policy — Nudge",
   description:
     "How Nudge collects, uses, and protects your information — including SMS opt-in data and mobile information handling.",

@@ -1,6 +1,14 @@
 import Navbar from "@/components/landing/Navbar";
 import About from "@/components/landing/About";
 import Footer from "@/components/landing/Footer";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "About Nudge",
+  description:
+    "Why Nudge exists and who built it.",
+  alternates: { canonical: "/about" },
+};
 
 export default function AboutPage() {
   return (
