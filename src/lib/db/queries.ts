@@ -1,4 +1,4 @@
-import { eq, and } from "drizzle-orm";
+import { eq, and, gt } from "drizzle-orm";
 import { db } from "./client";
 import {
   users,
@@ -8,6 +8,13 @@ import {
   vendorCancelInfo,
   otpCodes,
 } from "./schema";
+
+/** Timestamps we later compare against must be ISO-8601, matching what
+ * JS produces. Never rely on SQLite's datetime('now') default for a column
+ * that participates in a range query — the formats don't sort together. */
+export function nowIso() {
+  return new Date().toISOString();
+}
 
 export async function getUserByPhone(phoneNumber: string) {
   const result = await db
@@ -145,9 +152,35 @@ export async function logMessage(
   body: string,
   providerMessageId?: string
 ) {
-  await db
-    .insert(messages)
-    .values({ userId, direction, body, providerMessageId });
+  await db.insert(messages).values({
+    userId,
+    direction,
+    body,
+    providerMessageId,
+    // Written explicitly rather than left to the column default. SQLite's
+    // datetime('now') emits "2026-08-19 08:15:00" (space separator), which
+    // string-compares as LESS THAN any JS toISOString() value because ' '
+    // sorts before 'T'. Any `gt(createdAt, <iso>)` window would silently
+    // match nothing — which is exactly how the rate limiters were dead.
+    createdAt: nowIso(),
+  });
+}
+
+/** How many inbound texts this user has sent since `sinceIso`. Backs the
+ * webhook throttle — anyone can text our number, and every reply we send
+ * costs real money, so a flood has to stop costing us at some point. */
+export async function countRecentInbound(userId: string, sinceIso: string) {
+  const rows = await db
+    .select({ id: messages.id })
+    .from(messages)
+    .where(
+      and(
+        eq(messages.userId, userId),
+        eq(messages.direction, "inbound"),
+        gt(messages.createdAt, sinceIso)
+      )
+    );
+  return rows.length;
 }
 
 export async function getMessageByProviderId(providerMessageId: string) {
