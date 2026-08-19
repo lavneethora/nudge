@@ -141,14 +141,14 @@ export async function routeMessage(ctx: CommandContext): Promise<string> {
   // date response for that sub.
   if (ctx.awaitingDateForSubId) {
     const subId = ctx.awaitingDateForSubId;
-    const sub = await getSubscriptionById(subId);
+    const sub = await getSubscriptionById(subId, ctx.userId);
     if (!sub) {
       // sub was deleted meanwhile — clear the state and fall through
       await setAwaitingDateForSub(ctx.userId, null);
     } else {
       const parsed = parseUserDate(trimmed);
       if (parsed.kind === "date") {
-        await updateSubscriptionTrialEnd(subId, parsed.date);
+        await updateSubscriptionTrialEnd(subId, ctx.userId, parsed.date);
         await setAwaitingDateForSub(ctx.userId, null);
         const pretty = new Date(parsed.date).toLocaleDateString("en-US", {
           month: "short",
@@ -157,7 +157,7 @@ export async function routeMessage(ctx: CommandContext): Promise<string> {
         return `locked in. i'll ping you before your ${sub.vendorName} trial ends ${pretty} 👌`;
       }
       if (parsed.kind === "cancel") {
-        await deleteSubscription(subId);
+        await deleteSubscription(subId, ctx.userId);
         await setAwaitingDateForSub(ctx.userId, null);
         return `no worries, dropped ${sub.vendorName} from your list.`;
       }
@@ -183,9 +183,9 @@ export async function routeMessage(ctx: CommandContext): Promise<string> {
     )
   ) {
     if (ctx.lastRemindedSubId) {
-      const sub = await getSubscriptionById(ctx.lastRemindedSubId);
+      const sub = await getSubscriptionById(ctx.lastRemindedSubId, ctx.userId);
       if (sub) {
-        await markSubscriptionCancelled(sub.id);
+        await markSubscriptionCancelled(sub.id, ctx.userId);
         await setLastRemindedSub(ctx.userId, null);
         return `marked ${sub.vendorName} as cancelled 🙌`;
       }
@@ -196,9 +196,9 @@ export async function routeMessage(ctx: CommandContext): Promise<string> {
   // Bare "cancel" / "cancel it" / "cancel this" → cancel last-reminded sub
   if (/^cancel( it| this| that|)!?\.?$/i.test(trimmed)) {
     if (ctx.lastRemindedSubId) {
-      const sub = await getSubscriptionById(ctx.lastRemindedSubId);
+      const sub = await getSubscriptionById(ctx.lastRemindedSubId, ctx.userId);
       if (sub) {
-        await markSubscriptionCancelled(sub.id);
+        await markSubscriptionCancelled(sub.id, ctx.userId);
         await setLastRemindedSub(ctx.userId, null);
         const link = sub.cancelUrl
           ? `\n\ncancel link: ${sub.cancelUrl}`
