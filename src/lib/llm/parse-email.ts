@@ -1,4 +1,9 @@
 import Anthropic from "@anthropic-ai/sdk";
+import {
+  sanitizeCancelLink,
+  sanitizeVendorName,
+  sanitizeBillingAmount,
+} from "./sanitize";
 
 const client = new Anthropic();
 
@@ -88,11 +93,17 @@ ${body}`,
   for (const block of response.content) {
     if (block.type === "tool_use" && block.name === "extract_trial_info") {
       const input = block.input as Record<string, unknown>;
+      // The email body this came from was written by whoever emailed the
+      // user, so treat every extracted field as hostile until checked. The
+      // cancel link especially: it gets texted out as "cancel here: <url>".
+      const vendorName = sanitizeVendorName(input.vendor_name);
+      if (!vendorName) return null;
+
       return {
-        vendorName: input.vendor_name as string,
+        vendorName,
         trialEndDate: (input.trial_end_date as string) ?? null,
-        billingAmount: (input.billing_amount as number) ?? null,
-        cancelUrl: (input.cancel_url as string) ?? null,
+        billingAmount: sanitizeBillingAmount(input.billing_amount),
+        cancelUrl: sanitizeCancelLink(input.cancel_url),
         confidence: input.confidence as number,
       };
     }
