@@ -114,7 +114,13 @@ async function main() {
     lastRemindedSubId: null,
     onboardingState: "awaiting_connect",
   });
-  assert("reply contains OAuth link path", /\/auth\/gmail\?phone=/.test(yesReply));
+  assert(
+    "reply contains tokenised OAuth link",
+    /\/auth\/gmail\?t=[A-Za-z0-9_-]{20,}/.test(yesReply)
+  );
+  // A phone number in this link would mean anyone who knows someone's number
+  // could start a Gmail connect for their account — regression guard.
+  assert("OAuth link leaks no phone number", !/phone=/.test(yesReply));
   assert(
     "reply includes the save-as-nudge nudge",
     /save me in your contacts as "nudge"/.test(yesReply)
