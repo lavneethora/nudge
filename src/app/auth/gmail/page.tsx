@@ -5,19 +5,21 @@ import { Suspense } from "react";
 
 function GmailAuthContent() {
   const searchParams = useSearchParams();
-  const phone = searchParams.get("phone");
+  const token = searchParams.get("t");
 
-  if (!phone) {
+  if (!token) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center p-8">
-          <p className="text-red-500">Invalid link. Please try again from your text messages.</p>
+          <p className="text-red-500">
+            This link is invalid or expired. Text Nudge again to get a fresh one.
+          </p>
         </div>
       </div>
     );
   }
 
-  const connectUrl = `/api/auth/gmail?phone=${encodeURIComponent(phone)}`;
+  const connectUrl = `/api/auth/gmail?t=${encodeURIComponent(token)}`;
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
