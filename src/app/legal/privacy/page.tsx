@@ -228,10 +228,15 @@ export default function PrivacyPolicy() {
               </li>
             </ul>
             <p className="mt-3">
-              These providers are contractually restricted to processing your
-              information only to deliver services back to Nudge, and we do not
-              authorize them to use your mobile information for their own
-              marketing purposes.
+              We share only the minimum data each provider needs to do its job,
+              and we do not authorize any of them to use your information for
+              their own marketing purposes. Anthropic&apos;s commercial terms
+              expressly prohibit training their models on data we submit,
+              including the email excerpts described in section 3. Our other
+              providers process your data under their own standard terms of
+              service and privacy commitments rather than a separately
+              negotiated agreement with us. As Nudge grows we intend to put
+              formal data processing agreements in place with each of them.
             </p>
           </Section>
 
