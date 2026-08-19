@@ -58,17 +58,24 @@ export async function setAwaitingDateForSub(
     .where(eq(users.id, userId));
 }
 
-export async function getSubscriptionById(subId: string) {
+// Every subscription lookup and mutation below takes an explicit userId and
+// ANDs it into the predicate. There is no row-level security behind these —
+// Turso will happily act on any id we hand it — so this scoping is the only
+// thing standing between a mistaken id and touching someone else's data.
+// Keep userId required; an optional one would silently reintroduce the gap.
+
+export async function getSubscriptionById(subId: string, userId: string) {
   const result = await db
     .select()
     .from(subscriptions)
-    .where(eq(subscriptions.id, subId))
+    .where(and(eq(subscriptions.id, subId), eq(subscriptions.userId, userId)))
     .limit(1);
   return result[0] ?? null;
 }
 
 export async function updateSubscriptionTrialEnd(
   subId: string,
+  userId: string,
   trialEndDate: string
 ) {
   await db
@@ -77,21 +84,23 @@ export async function updateSubscriptionTrialEnd(
       trialEndDate,
       updatedAt: new Date().toISOString(),
     })
-    .where(eq(subscriptions.id, subId));
+    .where(and(eq(subscriptions.id, subId), eq(subscriptions.userId, userId)));
 }
 
-export async function deleteSubscription(subId: string) {
-  await db.delete(subscriptions).where(eq(subscriptions.id, subId));
+export async function deleteSubscription(subId: string, userId: string) {
+  await db
+    .delete(subscriptions)
+    .where(and(eq(subscriptions.id, subId), eq(subscriptions.userId, userId)));
 }
 
-export async function markSubscriptionCancelled(subId: string) {
+export async function markSubscriptionCancelled(subId: string, userId: string) {
   await db
     .update(subscriptions)
     .set({
       status: "cancelled",
       updatedAt: new Date().toISOString(),
     })
-    .where(eq(subscriptions.id, subId));
+    .where(and(eq(subscriptions.id, subId), eq(subscriptions.userId, userId)));
 }
 
 export async function setLastRemindedSub(userId: string, subId: string | null) {
@@ -217,12 +226,13 @@ export async function recordSmsConsent(userId: string) {
 
 export async function setSubscriptionCancelUrl(
   subId: string,
+  userId: string,
   cancelUrl: string
 ) {
   await db
     .update(subscriptions)
     .set({ cancelUrl, updatedAt: new Date().toISOString() })
-    .where(eq(subscriptions.id, subId));
+    .where(and(eq(subscriptions.id, subId), eq(subscriptions.userId, userId)));
 }
 
 /** Bidirectional lowercase-substring match against the small static/cached
