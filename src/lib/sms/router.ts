@@ -15,6 +15,7 @@ import {
   markSubscriptionCancelled,
   setLastRemindedSub,
 } from "@/lib/db/queries";
+import { createOAuthState } from "@/lib/gmail/oauth";
 import { parseUserDate } from "@/lib/dates/parse-user-date";
 import { parseAddRequest } from "@/lib/llm/parse-add";
 import { db } from "@/lib/db/client";
@@ -48,9 +49,13 @@ const routes: CommandRoute[] = [
 // affirmative replies to "wanna connect your gmail?" — kept loose on purpose
 const YES = /^(y|ya|yea|yes|yeah|yep|yup|sure|ok|okay|please|do it|dope|yesss+|👍|✅)$/i;
 
-function connectLink(phoneNumber: string) {
+// Mints a single-use token bound to this account and puts it in the link.
+// The token — not the phone number — is what authorizes the connect, so a
+// link is only usable by whoever received this text.
+async function connectLink(userId: string) {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-  return `${appUrl}/auth/gmail?phone=${encodeURIComponent(phoneNumber)}`;
+  const token = await createOAuthState(userId);
+  return `${appUrl}/auth/gmail?t=${token}`;
 }
 
 // The intro Nudge sends as its FIRST message — this reply carries the 10DLC
@@ -108,7 +113,7 @@ export async function routeMessage(ctx: CommandContext): Promise<string> {
       if (YES.test(trimmed)) {
         return (
           "got it! here's your gmail connect link:\n" +
-          connectLink(ctx.phoneNumber) +
+          (await connectLink(ctx.userId)) +
           "\n\noh, and save me in your contacts as \"nudge\" so my texts don't get lost 💾"
         );
       }
