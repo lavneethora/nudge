@@ -99,6 +99,11 @@ export async function createAndSendOtp(
     maxAttempts: MAX_ATTEMPTS,
     expiresAt,
     requestIp: requestIp ?? null,
+    // Must be ISO to match the window bounds this row is later compared
+    // against. The column default (SQLite datetime('now')) uses a space
+    // separator, which never compares greater than a JS ISO string — that
+    // silently disabled both rate limits below.
+    createdAt: new Date().toISOString(),
   });
 
   try {
