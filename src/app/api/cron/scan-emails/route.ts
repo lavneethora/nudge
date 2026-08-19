@@ -121,12 +121,12 @@ export async function GET(request: NextRequest) {
             const trial = newTrials.find((t) => t.vendorName === r.vendorName)!;
             const amount = trial.billingAmount ? ` ($${trial.billingAmount}/mo)` : "";
             const date = `, ends ${new Date(r.trialEndDate!).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`;
-            return `• ${r.vendorName}${date}${amount}`;
+            return `- ${r.vendorName}${date}${amount}`;
           });
           const msg =
             withDate.length === 1
-              ? `📧 found a new trial:\n${lines[0]}\n\ni'll ping you before it charges.`
-              : `📧 found ${withDate.length} trials:\n\n${lines.join("\n")}\n\ni'll ping you before each one charges.`;
+              ? `found a new trial:\n${lines[0]}\n\ni'll ping you before it charges.`
+              : `found ${withDate.length} trials:\n\n${lines.join("\n")}\n\ni'll ping you before each one charges.`;
           await sendSMSToUser(user.id, user.phoneNumber, msg);
         }
 
