@@ -26,7 +26,7 @@ export async function handleCancel(
   // 1. already has a link captured from the trial email
   if (target.cancelUrl) {
     await markSubscriptionCancelled(target.id, ctx.userId);
-    return `here's your ${name} cancel link:\n${target.cancelUrl}\n\nmarked as cancelled ✅`;
+    return `here's your ${name} cancel link:\n${target.cancelUrl}\n\nmarked as cancelled.`;
   }
 
   // 2. static/cached vendor table
@@ -34,7 +34,7 @@ export async function handleCancel(
   if (known) {
     await setSubscriptionCancelUrl(target.id, ctx.userId, known.cancelLink);
     await markSubscriptionCancelled(target.id, ctx.userId);
-    return `here's your ${name} cancel link:\n${known.cancelLink}\n\nmarked as cancelled ✅`;
+    return `here's your ${name} cancel link:\n${known.cancelLink}\n\nmarked as cancelled.`;
   }
 
   // 3. ask Claude, and cache a hit so we never look this vendor up twice
@@ -43,7 +43,7 @@ export async function handleCancel(
     await addVendorCancelInfo(target.vendorName, found.cancelLink, found.method);
     await setSubscriptionCancelUrl(target.id, ctx.userId, found.cancelLink);
     await markSubscriptionCancelled(target.id, ctx.userId);
-    return `here's your ${name} cancel link:\n${found.cancelLink}\n\nmarked as cancelled ✅`;
+    return `here's your ${name} cancel link:\n${found.cancelLink}\n\nmarked as cancelled.`;
   }
 
   // 4. nothing found anywhere

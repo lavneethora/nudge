@@ -114,7 +114,7 @@ export async function routeMessage(ctx: CommandContext): Promise<string> {
         return (
           "got it! here's your gmail connect link:\n" +
           (await connectLink(ctx.userId)) +
-          "\n\noh, and save me in your contacts as \"nudge\" so my texts don't get lost 💾"
+          "\n\noh, and save me in your contacts as \"nudge\" so my texts don't get lost."
         );
       }
       return "no worries, lmk when you're ready. text HELP anytime.";
