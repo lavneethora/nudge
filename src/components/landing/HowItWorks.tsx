@@ -20,9 +20,9 @@ const STEPS = [
 export default function HowItWorks() {
   return (
     <section id="how-it-works" className="mt-24 w-full max-w-lg mx-auto px-6">
-      <h2 className="text-[13px] font-medium uppercase tracking-[0.12em] text-[rgba(27,27,24,0.5)] mb-12">
+      <h1 className="text-[13px] font-medium uppercase tracking-[0.12em] text-[rgba(27,27,24,0.5)] mb-12">
         How it works
-      </h2>
+      </h1>
 
       <div className="space-y-10">
         {STEPS.map((step, i) => (

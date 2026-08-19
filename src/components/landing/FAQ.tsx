@@ -8,9 +8,9 @@ export default function FAQ() {
 
   return (
     <section id="faq" className="mt-24 w-full max-w-lg mx-auto px-6">
-      <h2 className="text-[13px] font-medium uppercase tracking-[0.12em] text-[rgba(27,27,24,0.5)] mb-12">
+      <h1 className="text-[13px] font-medium uppercase tracking-[0.12em] text-[rgba(27,27,24,0.5)] mb-12">
         FAQ
-      </h2>
+      </h1>
 
       <div className="divide-y divide-[rgba(27,27,24,0.08)]">
         {FAQ_ITEMS.map((item, i) => (
