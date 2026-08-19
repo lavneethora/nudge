@@ -11,16 +11,15 @@ import { sendSMSToUser } from "@/lib/messaging";
 type ReminderThreshold = {
   days: number;
   type: "5_day" | "2_day" | "final";
-  emoji: string;
   urgency: string;
 };
 
 // Ordered most-urgent-first: a subscription gets exactly one reminder —
 // the most urgent threshold its daysLeft falls under
 const THRESHOLDS: ReminderThreshold[] = [
-  { days: 0, type: "final", emoji: "🚨", urgency: "Last chance" },
-  { days: 2, type: "2_day", emoji: "⏰", urgency: "2 days left" },
-  { days: 5, type: "5_day", emoji: "⏰", urgency: "Reminder" },
+  { days: 0, type: "final", urgency: "Last chance" },
+  { days: 2, type: "2_day", urgency: "2 days left" },
+  { days: 5, type: "5_day", urgency: "Reminder" },
 ];
 
 export async function processReminders() {
@@ -79,11 +78,11 @@ export async function processReminders() {
 
     let msg: string;
     if (threshold.type === "final") {
-      msg = `${threshold.emoji} last chance! your ${subscription.vendorName} trial ends TODAY. cancel before midnight or you'll get charged ${amount}.`;
+      msg = `last chance! your ${subscription.vendorName} trial ends TODAY. cancel before midnight or you'll get charged ${amount}.`;
     } else if (threshold.type === "2_day") {
-      msg = `${threshold.emoji} 2 days left on your ${subscription.vendorName} trial (ends ${dateStr}). cancel now to avoid ${amount}.`;
+      msg = `2 days left on your ${subscription.vendorName} trial (ends ${dateStr}). cancel now to avoid ${amount}.`;
     } else {
-      msg = `${threshold.emoji} heads up, your ${subscription.vendorName} trial ends in ${daysLeft} days (${dateStr}). you'll get charged ${amount} if you don't cancel.`;
+      msg = `heads up, your ${subscription.vendorName} trial ends in ${daysLeft} days (${dateStr}). you'll get charged ${amount} if you don't cancel.`;
     }
 
     // Never invite a bare "cancel" reply — that's a carrier-mandated opt-out
