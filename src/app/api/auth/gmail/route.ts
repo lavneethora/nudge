@@ -1,31 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAuthUrl, createOAuthState } from "@/lib/gmail/oauth";
-import { getUserByPhone } from "@/lib/db/queries";
-import { normalizeToE164 } from "@/lib/phone";
+import { getAuthUrl, peekOAuthState } from "@/lib/gmail/oauth";
 
+// Starts the Gmail OAuth flow. The ONLY accepted input is the single-use
+// token we texted to the account holder — deliberately not a phone number.
+// A phone number is public knowledge, so accepting one here would let anyone
+// begin a connect flow for someone else's account and end up with the wrong
+// person's inbox bound to it.
 export async function GET(request: NextRequest) {
-  const phone = request.nextUrl.searchParams.get("phone");
-  if (!phone) {
-    return NextResponse.json({ error: "Missing phone" }, { status: 400 });
-  }
+  const token = request.nextUrl.searchParams.get("t");
 
-  const norm = normalizeToE164(phone);
-  if (!norm.ok) {
-    return NextResponse.json({ error: "Invalid phone" }, { status: 400 });
-  }
-
-  const user = await getUserByPhone(norm.e164);
-
-  // Deliberately identical response whether or not the number is registered —
-  // this endpoint is reachable by anyone, so it must not confirm who has an
-  // account. Unknown numbers get the same generic failure page as a stale link.
+  const user = token ? await peekOAuthState(token) : null;
   if (!user) {
+    // Same response for missing, unknown, expired, and already-used tokens —
+    // this endpoint must not reveal whether a token or account exists.
     return NextResponse.redirect(
-      new URL("/auth/gmail/success?status=error", request.url)
+      new URL("/auth/gmail/success?status=expired", request.url)
     );
   }
 
-  // The state carries a single-use nonce only; the phone stays server-side.
-  const state = await createOAuthState(user.id);
-  return NextResponse.redirect(getAuthUrl(state));
+  // The token doubles as the OAuth state param: it's random, single-use, and
+  // already bound server-side to exactly one account.
+  return NextResponse.redirect(getAuthUrl(token as string));
 }
