@@ -47,9 +47,10 @@ next-env.d.ts
 *.db-wal
 *.db-shm
 
-# local placeholder demo video (real one ships via CDN later)
-/public/demo.mp4
-/public/demo-poster.webp
+# raw source video — 89MB, kept locally as the master for re-encodes.
+# The shipped, compressed public/demo.mp4 and public/demo-poster.jpg ARE
+# committed on purpose; this is only the unprocessed original.
+nudge-raw.mp4
 
 # internal working notes
 HANDOFF.md
@@ -60,3 +61,6 @@ CLAUDE.md
 AGENTS.md
 HANDOFF.md
 
+
+# scraped research (vendor DPAs, CASA pricing, Telnyx docs) — reference only
+.firecrawl/
