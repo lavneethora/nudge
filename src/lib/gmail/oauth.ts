@@ -7,9 +7,15 @@ import { encrypt, decrypt } from "./crypto";
 
 const SCOPES = ["https://www.googleapis.com/auth/gmail.readonly"];
 
-// An OAuth state token is only good for one connect attempt, and only for a
-// few minutes — it's a CSRF nonce, not an identifier.
-const STATE_TTL_MS = 10 * 60 * 1000;
+// The connect token is minted when we text someone their Gmail link, so
+// possession of it proves possession of that phone. It is the ONLY thing
+// authorizing a connect — a phone number alone must never be enough, or
+// anyone who knows your number could bind their inbox to your account.
+//
+// It rides in an SMS, so it needs to outlive "I'll do this tonight"; 24h with
+// single use is the balance. An expired one is cheap to replace: text nudge
+// again and a fresh link comes back.
+const STATE_TTL_MS = 24 * 60 * 60 * 1000;
 
 function getOAuth2Client() {
   return new google.auth.OAuth2(
@@ -51,10 +57,10 @@ export async function createOAuthState(userId: string): Promise<string> {
   return nonce;
 }
 
-/** Resolve a callback's state nonce back to its user, then burn it. Returns
- * null for unknown, malformed, or expired nonces — callers must not
- * distinguish those cases to the client. */
-export async function consumeOAuthState(nonce: string) {
+/** Look up the account a connect token belongs to without spending it.
+ * Used when the user first opens the link — the token still has to survive
+ * the round trip through Google before the callback burns it. */
+export async function peekOAuthState(nonce: string) {
   if (!nonce || typeof nonce !== "string") return null;
 
   const rows = await db.select().from(users);
@@ -62,15 +68,37 @@ export async function consumeOAuthState(nonce: string) {
   if (!match?.oauthStateToken) return null;
 
   const issuedAt = Number(match.oauthStateToken.split(".")[1]);
-  // Burn it either way — an expired nonce is spent, not retryable
+  if (!Number.isFinite(issuedAt) || Date.now() - issuedAt > STATE_TTL_MS) {
+    return null;
+  }
+  return match;
+}
+
+/** Resolve a callback's state nonce back to its user, then burn it. Returns
+ * null for unknown, malformed, or expired nonces — callers must not
+ * distinguish those cases to the client. */
+export async function consumeOAuthState(nonce: string) {
+  const match = await peekOAuthState(nonce);
+
+  // Burn on any lookup that found a row, expired or not — a spent token is
+  // never retryable. peek() already rejected expired ones, so clear by nonce.
+  if (!match) {
+    const rows = await db.select().from(users);
+    const stale = rows.find((u) => u.oauthStateToken?.split(".")[0] === nonce);
+    if (stale) {
+      await db
+        .update(users)
+        .set({ oauthStateToken: null, updatedAt: new Date().toISOString() })
+        .where(eq(users.id, stale.id));
+    }
+    return null;
+  }
+
   await db
     .update(users)
     .set({ oauthStateToken: null, updatedAt: new Date().toISOString() })
     .where(eq(users.id, match.id));
 
-  if (!Number.isFinite(issuedAt) || Date.now() - issuedAt > STATE_TTL_MS) {
-    return null;
-  }
   return match;
 }
 
