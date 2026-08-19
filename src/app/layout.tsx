@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist_Mono, IBM_Plex_Mono } from "next/font/google";
 import { SITE_URL } from "@/lib/site";
+import { jsonLdScript, organizationLd, webApplicationLd } from "@/lib/jsonld";
 import "./globals.css";
 
 // Open-font stand-ins for virio's Haffer XH SemiMono (commercial, unlicensed).
@@ -64,7 +65,19 @@ export default function RootLayout({
       lang="en"
       className={`${geistMono.variable} ${plexMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        {/* Machine-readable facts about the service. Site-wide, so answer
+            engines get them from whichever page they land on. */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: jsonLdScript(organizationLd) }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: jsonLdScript(webApplicationLd) }}
+        />
+        {children}
+      </body>
     </html>
   );
 }
