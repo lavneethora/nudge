@@ -43,7 +43,12 @@ export async function GET(request: NextRequest) {
     await sendSMSToUser(
       user.id,
       phone,
-      "all set ✅ gmail is connected! scanning your inbox for active trials now..."
+      // No emoji on purpose: a single non-GSM char forces UCS-2 encoding and
+      // halves the chars-per-segment, so plain text lets us name both
+      // data-rights commands in ONE segment instead of two.
+      // This is also the moment revocation first becomes meaningful, and
+      // Google's OAuth review expects users to be told how to revoke.
+      "all set! gmail is connected. scanning your inbox for active trials now. text DISCONNECT anytime to cut off access, or DELETE to erase everything."
     );
 
     // Follow-up bubble so users know they can also text me trials directly —
