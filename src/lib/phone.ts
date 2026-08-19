@@ -2,6 +2,8 @@ export type NormalizeResult =
   | { ok: true; e164: string }
   | { ok: false; error: string };
 
+const TYPO_ERROR = "That doesn't look like a valid US number — double-check it?";
+
 // The Telnyx messaging profile is scoped to whitelisted_destinations: ["US"],
 // and Telnyx resolves destinations by ISO country code. Puerto Rico (PR),
 // US Virgin Islands (VI), Guam (GU), American Samoa (AS), N. Mariana (MP) and
@@ -70,6 +72,24 @@ const US_AREA_CODES = new Set([
   "534","608","715","920","307",
 ]);
 
+// Area codes that are real, just not in the US: Canada, the Caribbean members
+// of the NANP, and the US territories Telnyx bills as separate destinations.
+// Split out from "unrecognized" so a Toronto number gets told we're US-only
+// while a mistyped Texas number gets told to check what they typed.
+const NON_US_AREA_CODES = new Set([
+  // Canada
+  "204","226","236","249","250","263","289","306","343","354","365","367",
+  "368","382","387","403","416","418","428","431","437","438","450","468",
+  "474","506","514","519","548","579","581","584","587","604","613","639",
+  "647","672","683","705","709","742","753","778","780","782","807","819",
+  "825","867","873","879","902","905",
+  // US territories (separate ISO codes to Telnyx, so undeliverable for us)
+  "340","670","671","684","787","939",
+  // Caribbean / Atlantic NANP members
+  "242","246","264","268","284","345","441","473","649","664","721","758",
+  "767","784","809","829","849","868","869","876",
+]);
+
 export function normalizeToE164(phoneNumber: string): NormalizeResult {
   const digits = phoneNumber.replace(/\D/g, "");
 
@@ -80,7 +100,7 @@ export function normalizeToE164(phoneNumber: string): NormalizeResult {
   } else if (digits.length === 11 && digits.startsWith("1")) {
     national = digits.slice(1);
   } else {
-    return { ok: false, error: "Invalid phone number" };
+    return { ok: false, error: TYPO_ERROR };
   }
 
   const areaCode = national.slice(0, 3);
@@ -88,15 +108,19 @@ export function normalizeToE164(phoneNumber: string): NormalizeResult {
 
   // Area code and exchange both must start 2-9 per the NANP
   if (!/^[2-9]\d\d$/.test(areaCode) || !/^[2-9]\d\d$/.test(exchange)) {
-    return { ok: false, error: "Invalid phone number" };
+    return { ok: false, error: TYPO_ERROR };
   }
 
-  if (!US_AREA_CODES.has(areaCode)) {
-    return {
-      ok: false,
-      error: "Nudge only supports US numbers right now",
-    };
+  if (US_AREA_CODES.has(areaCode)) {
+    return { ok: true, e164: `+1${national}` };
   }
 
-  return { ok: true, e164: `+1${national}` };
+  // A real number we can't deliver to
+  if (NON_US_AREA_CODES.has(areaCode)) {
+    return { ok: false, error: "Nudge only works with US numbers right now" };
+  }
+
+  // Structurally fine but not a code we recognize — far more likely a typo
+  // than a real number, so don't tell someone in Texas we don't serve them.
+  return { ok: false, error: TYPO_ERROR };
 }
