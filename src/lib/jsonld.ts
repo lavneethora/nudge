@@ -28,11 +28,11 @@ export const organizationLd = {
   logo: `${SITE_URL}/og.jpg`,
   description:
     "Nudge is an SMS service that reminds people before a free trial converts to a paid subscription.",
-  email: "31lavneet@gmail.com",
+  email: "help@nudgeme.app",
   contactPoint: {
     "@type": "ContactPoint",
     contactType: "customer support",
-    email: "31lavneet@gmail.com",
+    email: "help@nudgeme.app",
     availableLanguage: "English",
     areaServed: "US",
   },

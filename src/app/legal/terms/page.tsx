@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 // agreement users accepted doesn't silently change. The generator attribution
 // in section 1 is kept intact per TermsFeed's terms.
 const LAST_UPDATED = "May 7, 2026";
-const CONTACT_EMAIL = "31lavneet@gmail.com";
+const CONTACT_EMAIL = "help@nudgeme.app";
 
 export default function TermsAndConditions() {
   return (

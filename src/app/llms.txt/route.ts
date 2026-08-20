@@ -49,7 +49,7 @@ ${links}
 
 ## Contact
 
-- Email: 31lavneet@gmail.com
+- Email: help@nudgeme.app
 `;
 }
 

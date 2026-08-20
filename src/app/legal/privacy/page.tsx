@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 };
 
 const LAST_UPDATED = "August 17, 2026";
-const CONTACT_EMAIL = "31lavneet@gmail.com";
+const CONTACT_EMAIL = "help@nudgeme.app";
 
 export default function PrivacyPolicy() {
   return (

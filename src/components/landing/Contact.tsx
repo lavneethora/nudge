@@ -13,10 +13,10 @@ export default function Contact() {
         <p>
           or email{" "}
           <a
-            href="mailto:31lavneet@gmail.com"
+            href="mailto:help@nudgeme.app"
             className="underline hover:text-ink transition-colors"
           >
-            31lavneet@gmail.com
+            help@nudgeme.app
           </a>
         </p>
       </div>
